@@ -39,8 +39,12 @@ A Location App, powered by API, that lets you explore anywhere.
 
 # Preview
 <img src="https://files.catbox.moe/fqlgub.png" alt="LocationBot preview">
+
 ### Website Preview
 <img src="https://files.catbox.moe/ywhxr0.png" alt="LocationWeb preview">
+
+### Website Location Preview
+<img src="https://files.catbox.moe/7sggae.png" alt="LocationWeb1 preview">
 
 ## Hosting
 You can host the bot on Free Hosting Like [SillyDev](https://sillydev.co.uk) or any Node.js-supported VPS.
