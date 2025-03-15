@@ -50,7 +50,7 @@ You can host the bot on Free Hosting Like [SillyDev](https://sillydev.co.uk) or 
 - **Warning if You need to enabled Dashboard Page Please Use Cloudflared Tunnel too or ngrok**
 
 ## License
-This project is licensed under the MIT License.
+This project is licensed under the Apache License.
 
 ## Credits
 Developed by Robloxbot Inc, Software Developers. with **NETTH** Host Team
