@@ -24,7 +24,7 @@ A Location App, powered by API, that lets you explore anywhere.
 ### Setup
 1. Clone the repository:
    ```sh
-   git clone https://github.com/Gatshja/location-bot.git
+   git clone https://github.com/Gatshja/Location-Bot.git
    cd location-bot
    ```
 2. Install dependencies:
