@@ -48,7 +48,8 @@ A Location App, powered by API, that lets you explore anywhere.
 
 ### Admin Page Preview (Work Only Maintenance and System Logs)
 <img src="https://files.catbox.moe/44lm12.png" alt="AdminPage preview">
-- Adminpage: http://xxx.xxx/admin
+
+- Adminpage: http://127.0.0.1:8080/admin
 - password: adminaccess
 
 ## Hosting
