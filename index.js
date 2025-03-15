@@ -591,7 +591,7 @@ client.on('interactionCreate', async (interaction) => {
 
 const express = require('express')
 const app = express();
-const port = 9000
+const port = 8080
 
 // Serve static files after route handlers
 // Middleware to check maintenance mode
