@@ -25,7 +25,7 @@ A Location App, powered by API, that lets you explore anywhere.
 1. Clone the repository:
    ```sh
    git clone https://github.com/Gatshja/Location-Bot.git
-   cd location-bot
+   cd Location-Bot
    ```
 2. Install dependencies:
    ```sh
@@ -54,6 +54,7 @@ A Location App, powered by API, that lets you explore anywhere.
 ## Hosting
 You can host the bot on Free Hosting Like [SillyDev](https://sillydev.co.uk) or any Node.js-supported VPS.
 - **Warning if You need to enabled Dashboard Page Please Use Cloudflared Tunnel too or ngrok**
+- Default Port is **8080** (You can change in **index.js**)
 
 ## License
 This project is licensed under the Apache License.
