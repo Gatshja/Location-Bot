@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Location - Website</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5; }
+        /* Navigation Styles */
+        .navbar {
+            background: linear-gradient(135deg, #990000, #c70000);
+            padding: 1rem;
+            box-shadow: 0 4px 10px rgba(199, 0, 0, 0.2);
+        }
+
+        .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            color: white;
+            font-size: 24px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-links li {
+            margin: 0 5px;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background 0.3s;
+            display: block;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            display: block;
+        }
+
+        /* Mobile Menu Styles */
+        .mobile-menu-icon {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            z-index: 1000;
+        }
+
+        .bar {
+            width: 25px;
+            height: 3px;
+            background-color: white;
+            margin: 3px 0;
+            transition: 0.4s;
+        }
+
+        .close-menu {
+            display: none;
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 28px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+            display: none;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .mobile-menu-icon {
+                display: flex;
+            }
+
+            .close-menu {
+                display: block;
+            }
+
+            .navbar-container {
+                justify-content: space-between;
+            }
+
+            .nav-links {
+                position: fixed;
+                top: 0;
+                right: -100%; /* Start completely off-screen */
+                width: 250px;
+                height: 100%;
+                background-color: #333;
+                flex-direction: column;
+                padding: 60px 20px 20px;
+                z-index: 999;
+                transition: right 0.3s ease;
+                box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+                margin: 0;
+            }
+
+            .nav-links.active {
+                right: 0;
+            }
+
+            .nav-links li {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+            }
+
+            .nav-links a {
+                padding: 15px;
+                width: 100%;
+                text-align: left;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                font-size: 18px;
+            }
+
+            .hero {
+                padding: 40px 15px;
+            }
+
+            .hero h1 {
+                font-size: 2em;
+            }
+
+            .stats-section {
+                grid-template-columns: 1fr;
+            }
+
+            #map {
+                height: 350px;
+            }
+
+            .search-container {
+                flex-direction: column;
+            }
+
+            .search-container button {
+                margin-top: 10px;
+            }
+
+            .features-grid, .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        <div id="info" style="display: none;">
+            <div class="container">
+                <h1>About Location Bot</h1>
+                <div class="info-section">
+                    <h2>Features</h2>
+                    <ul>
+                        <li>Search for any location worldwide</li>
+                        <li>View locations on different map providers</li>
+                        <li>Track the International Space Station</li>
+                        <li>Use custom coordinates to find specific locations</li>
+                        <li>Play location guessing games with different difficulty levels</li>
+                    </ul>
+
+                    <h2>API Information</h2>
+                    <p>This application is powered by LocationIQ and Yandex Maps</p>
+
+                    <h2>Contact</h2>
+                    <p>Email: <strong>contact@robloxbot.us.kg</strong></p>
+
+                    <div class="links">
+                        <a href="/privacy-policy.html">Privacy Policy</a> | 
+                        <a href="/tos.html">Terms of Service</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        .container { 
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero {
+            text-align: center;
+            padding: 80px 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #fff0f0 100%);
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 15px rgba(199, 0, 0, 0.15);
+            animation: fadeIn 1s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: linear-gradient(135deg, rgba(255,230,230,0.3) 0%, rgba(255,255,255,0.1) 100%);
+            filter: blur(20px);
+            z-index: -1;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .hero h1 { 
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 3em;
+            font-weight: 800;
+            background: linear-gradient(45deg, #c70000 30%, #ff3333 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient 3s ease infinite;
+        }
+
+        .hero p {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            animation: fadeIn 1.2s ease-out;
+        }
+
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 40px 0;
+            animation: fadeIn 1s ease-out 0.3s backwards;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(199, 0, 0, 0.1);
+            transition: all 0.4s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            border-bottom: 3px solid #c70000;
+            box-shadow: 0 8px 25px rgba(199, 0, 0, 0.2);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #c70000;
+            margin-bottom: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        .features-section {
+            padding: 40px 0;
+            animation: fadeIn 1s ease-out 0.6s backwards;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: all 0.4s;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 0;
+            background: linear-gradient(180deg, rgba(255,230,230,0.2) 0%, rgba(255,255,255,0) 100%);
+            transition: height 0.5s ease;
+            z-index: -1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 25px rgba(199, 0, 0, 0.15);
+        }
+
+        .feature-card:hover::before {
+            height: 100%;
+        }
+
+        .feature-icon {
+            font-size: 2em;
+            margin-bottom: 15px;
+            color: #c70000;
+            transition: transform 0.3s;
+        }
+        
+        .feature-card:hover .feature-icon {
+            transform: scale(1.2);
+        }
+
+        footer {
+            background: linear-gradient(135deg, #990000, #c70000);
+            color: white;
+            padding: 40px 0 20px;
+            margin-top: 60px;
+            box-shadow: 0 -4px 15px rgba(199, 0, 0, 0.2);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .footer-copyright {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.9em;
+            color: #999;
+        }
+        .cta-button {
+            display: inline-block;
+            padding: 15px 30px;
+            background: #c70000;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 18px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            box-shadow: 0 4px 15px rgba(199, 0, 0, 0.3);
+        }
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.7s;
+            z-index: -1;
+        }
+        .cta-button:hover {
+            background: #ff0000;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(199, 0, 0, 0.4);
+        }
+        .cta-button:hover::before {
+            left: 100%;
+        }
+        #locationSearch {
+            display: none;
+        }
+        #home {
+            display: block;
+        }
+        #map { 
+            height: 500px;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .search-container {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #searchInput {
+            padding: 12px;
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #c70000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(199, 0, 0, 0.2);
+        }
+        button:hover {
+            background: #ff0000;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(199, 0, 0, 0.3);
+        }
+
+        .info-container {
+            padding: 40px 0;
+        }
+
+        .info-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .info-header h1 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .info-card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+            text-align: center;
+        }
+
+        .info-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .info-icon {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #4CAF50;
+        }
+
+        .info-card h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .info-card ul {
+            list-style: none;
+            padding: 0;
+            text-align: left;
+        }
+
+        .info-card ul li {
+            margin: 10px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .info-card ul li:before {
+            content: "•";
+            color: #4CAF50;
+            position: absolute;
+            left: 0;
+        }
+
+        .support-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 15px;
+            transition: background 0.3s;
+        }
+
+        .support-button:hover {
+            background: #45a049;
+        }
+
+        .street-view-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 5px;
+            font-size: 14px;
+            width: 100%;
+            display: block;
+            text-align: center;
+        }
+
+        .street-view-btn:hover {
+            background: #45a049;
+        }
+
+        .exit-street-view {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10000;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .exit-street-view:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        /* Status Page Styles */
+        .status-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .status-header h1 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .status-overview {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .status-operational {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .service-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .service-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .service-status {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-green {
+            background-color: #28a745;
+        }
+
+        .bot-stats-section {
+            margin-top: 30px;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .bot-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .bot-stat-card {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .bot-stat-card h4 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .bot-stat-card div {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .uptime-history {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 40px;
+        }
+
+        .uptime-chart {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            height: 200px;
+            margin: 30px 0 10px;
+        }
+
+        .chart-bar {
+            width: 12%;
+            background: #4CAF50;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s ease;
+        }
+
+        .chart-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .chart-labels span {
+            width: 12%;
+            text-align: center;
+            font-size: 0.8em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="#" class="navbar-brand">Location</a>
+            <div class="mobile-menu-icon" onclick="toggleMobileMenu()">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+            <ul class="nav-links" id="mobile-nav">
+                <li><a href="/" onclick="showPage('home'); toggleMobileMenu(); return false;">Home</a></li>
+                <li><a href="/location-search" onclick="showPage('locationSearch'); toggleMobileMenu(); return false;">Location Search</a></li>
+                <li><a href="/status" onclick="showPage('status'); toggleMobileMenu(); return false;">Status</a></li>
+                <li><a href="/info" onclick="showPage('info'); toggleMobileMenu(); return false;">Info</a></li>
+                <div class="close-menu" onclick="toggleMobileMenu()">×</div>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="home">
+            <div class="hero">
+                <h1>Welcome to Location Dashboard</h1>
+                <p>Discover and explore locations around the world with our interactive mapping tool.</p>
+                <a href="/location-search" class="cta-button">Start Searching</a>
+            </div>
+
+            <div class="stats-section">
+                <div class="stat-card">
+                    <div class="stat-number">99.9%</div>
+                    <div>Uptime</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">90+</div>
+                    <div>Active Servers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">10K+</div>
+                    <div>Searches</div>
+                </div>
+            </div>
+
+            <div class="features-section">
+                <h2>Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🗺️</div>
+                        <h3>Location Search</h3>
+                        <p>Search any location worldwide with precise coordinates and detailed information.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🛰️</div>
+                        <h3>Satellite View</h3>
+                        <p>Switch between street and satellite views for comprehensive location visualization.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🤖</div>
+                        <h3>Discord Bot</h3>
+                        <p>Integrated Discord bot for seamless location searches right in your server.</p>
+                    </div>
+                </div>
+            </div>
+
+            <footer>
+                <div class="footer-content">
+                    <div class="footer-copyright">
+                        © 2024 Location Dashboard. All rights reserved.
+                    </div>
+                </div>
+            </footer>
+        </div>
+
+        <div id="info" style="display: none;">
+            <div class="info-container">
+                <div class="info-header">
+                    <h1>Bot Information</h1>
+                    <p>Everything you need to know about our Location Dashboard Bot</p>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-icon">👨‍💻</div>
+                        <h3>Owner</h3>
+                        <p>Robloxbot Inc, Software Developers</p>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-icon">🤖</div>
+                        <h3>Bot Features</h3>
+                        <ul>
+                            <li>Location Search</li>
+                            <li>ISS Tracking</li>
+                            <li>Satellite View</li>
+                            <li>Real-time Coordinates</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-icon">💬</div>
+                        <h3>Support</h3>
+                        <p>Need help? Contact our support team through Discord</p>
+                        <a href="https://discord.gg/4UKGWyV6Vc" class="support-button">Join Support Server</a>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-icon">📊</div>
+                        <h3>Statistics</h3>
+                        <ul>
+                            <li>70+ Active Servers</li>
+                            <li>10,000+ Searches</li>
+                            <li>99.9% Uptime</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="status" style="display: none;">
+            <div class="status-header">
+                <h1>System Status</h1>
+                <p>Current status of our services and systems</p>
+            </div>
+
+            <div class="status-overview">
+                <h2>Bot Statistics</h2>
+                <p>Last updated: <span id="last-updated"></span></p>
+            </div>
+
+            <div class="bot-stats-section">
+                <h3>Real-time Bot Statistics</h3>
+                <div class="bot-stats-grid">
+                    <div class="bot-stat-card">
+                        <h4>Servers</h4>
+                        <div id="server-stats">Loading...</div>
+                    </div>
+                    <div class="bot-stat-card">
+                        <h4>Users</h4>
+                        <div id="user-stats">Loading...</div>
+                    </div>
+                    <div class="bot-stat-card">
+                        <h4>Searches</h4>
+                        <div id="command-stats">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="locationSearch">
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Enter a location...">
+                <button onclick="searchLocation()">Search</button>
+                <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">You can also click anywhere on the map to place a marker and view Street View.</p>
+            </div>
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        function showPage(pageId) {
+            document.getElementById('home').style.display = 'none';
+            document.getElementById('locationSearch').style.display = 'none';
+            document.getElementById(pageId).style.display = 'block';
+
+            if (pageId === 'locationSearch' && !window.mapInitialized) {
+                initializeMap();
+            }
+        }
+
+        // Handle screen orientation changes
+        window.addEventListener('orientationchange', function() {
+            setTimeout(function() {
+                if (window.mapInitialized && map) {
+                    map.invalidateSize();
+                }
+            }, 200);
+        });
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,1649 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Location Bot</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7f9;
+            color: #333;
+        }
+        
+        /* Maintenance Mode Styles */
+        .maintenance-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .status-indicator {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .online {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .maintenance {
+            background-color: #FF9800;
+            color: white;
+        }
+        
+        .maintenance-toggle, .maintenance-message, .maintenance-log {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-right: 15px;
+            vertical-align: middle;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+        }
+
+.status-message {
+    margin-left: 10px;
+    font-weight: bold;
+}
+
+.status-pending {
+    color: #f39c12;
+}
+
+.status-success {
+    color: #2ecc71;
+}
+
+.status-error {
+    color: #e74c3c;
+}
+
+.command-status {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.button-group {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+        
+        input:checked + .slider {
+            background-color: #FF9800;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .slider.round {
+            border-radius: 34px;
+        }
+
+            <div class="admin-section">
+                <h2>Maintenance Mode</h2>
+                <div class="maintenance-controls">
+                    <div class="toggle-container">
+                        <label class="switch">
+                            <input type="checkbox" id="maintenance-toggle">
+                            <span class="slider round"></span>
+                        </label>
+                        <span>Enable Maintenance Mode</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="maintenance-message">Maintenance Message:</label>
+                        <textarea id="maintenance-message" rows="3">🛠️ We're currently performing maintenance on the bot. Please try again later!</textarea>
+                    </div>
+                    <div class="input-group">
+                        <label for="maintenance-end-time">End Time (optional):</label>
+                        <input type="datetime-local" id="maintenance-end-time">
+                    </div>
+                    <button id="save-maintenance" class="btn-primary">Save Changes</button>
+                </div>
+            </div>
+            
+            <div class="admin-section">
+                <h2>Commands Status</h2>
+                <div class="command-status">
+                    <p>Current registered commands: <span id="registered-commands-count">Loading...</span></p>
+                    <div class="button-group">
+                        <button id="refresh-commands" class="btn-primary">Refresh Commands Registration</button>
+                        <div id="refresh-status" class="status-message"></div>
+                    </div>
+                </div>
+            </div>
+
+        
+        .slider.round:before {
+            border-radius: 50%;
+        }
+        
+        #maintenance-message {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: inherit;
+        }
+        
+        .estimated-time {
+            margin: 15px 0;
+        }
+        
+        #maintenance-end-time {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .primary-button {
+            background-color: #FF9800;
+            padding: 10px 20px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+
+        /* Terminal Logs Styles */
+        .logs-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #333;
+            color: white;
+            padding: 10px 15px;
+        }
+        
+        .terminal-title {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .terminal-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .terminal-button {
+            background: #555;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s, transform 0.1s;
+        }
+        
+        .terminal-button:hover {
+            background: #666;
+            transform: translateY(-1px);
+        }
+        
+        .terminal {
+            background: #1E1E1E;
+            color: #DCDCDC;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            height: 400px;
+            overflow-y: auto;
+            border-radius: 0;
+            line-height: 1.5;
+        }
+        
+        .terminal pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .log-filters {
+            padding: 15px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            position: relative;
+        }
+        
+        .log-filters label {
+            margin-right: 5px;
+            font-weight: bold;
+        }
+        
+        .log-filters input,
+        .log-filters select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .log-count {
+            position: absolute;
+            right: 15px;
+            background: #555;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        
+        /* Terminal tabs */
+        .terminal-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .tab-button {
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .tab-button:hover {
+            background: #e0e0e0;
+        }
+        
+        .tab-button.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        /* Log statistics */
+        .log-stats {
+            margin-top: 20px;
+        }
+        
+        .log-stats h3 {
+            margin-bottom: 15px;
+        }
+        
+        .log-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .log-stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        
+        .log-stat-card h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        /* Command color codes */
+        .log-command { color: #4CAF50; font-weight: bold; }
+        .log-error { color: #F44336; }
+        .log-system { color: #2196F3; }
+        .log-timestamp { color: #9E9E9E; }
+        .log-user { color: #FF9800; }
+        .log-server { color: #9C27B0; }
+        .log-options { color: #607D8B; font-style: italic; }
+
+        /* User Analytics Styles */
+        .user-analytics-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .user-stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+        }
+        
+        .user-stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .user-stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+        
+        .user-analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .user-analytics-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .user-analytics-card h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        #top-users {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        #top-users th,
+        #top-users td {
+            padding: 12px;
+            text-align: left;
+        }
+        
+        #top-users th {
+            background-color: #f5f7f9;
+            font-weight: bold;
+        }
+        
+        #top-users tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        #top-users tr:hover {
+            background-color: #f0f7ff;
+        }
+        
+        /* For the engagement cards */
+        .user-engagement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .engagement-card {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .engagement-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        .engagement-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+            margin: 10px 0;
+        }
+        
+        .engagement-description {
+            color: #777;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            .user-analytics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        }
+        
+        .primary-button:hover {
+            background-color: #F57C00;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+        
+        .admin-panel {
+            display: grid;
+            grid-template-columns: 1fr 3fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .sidebar {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .main-content {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            margin-bottom: 8px;
+            color: #555;
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+
+    // Command refresh handling
+    document.getElementById('refresh-commands').addEventListener('click', async function() {
+        const statusElem = document.getElementById('refresh-status');
+        statusElem.textContent = "⏳ Refreshing commands...";
+        
+        try {
+            const response = await fetch('/api/refresh-commands', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    adminPassword: 'adminaccess'
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                statusElem.textContent = `✅ ${data.message}`;
+                document.getElementById('registered-commands-count').textContent = data.commandsRegistered;
+            } else {
+                statusElem.textContent = `❌ ${data.message}`;
+            }
+        } catch (error) {
+            statusElem.textContent = "❌ Failed to refresh commands: " + error.message;
+        }sElem.classList.add('status-pending');
+        
+        try {
+            const response = await fetch('/api/maintenance/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    adminPassword: sessionStorage.getItem('adminPassword'),
+                    enabled: document.getElementById('maintenance-toggle').checked,
+                    message: document.getElementById('maintenance-message').value,
+                    endTime: document.getElementById('maintenance-end-time').value || null,
+                    refreshCommands: true
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('registered-commands-count').textContent = 
+                    data.commandsRegistered || "Command registration initiated";
+                
+                statusElem.textContent = "✅ Command refresh successful";
+                statusElem.classList.remove('status-pending');
+                statusElem.classList.add('status-success');
+                
+                setTimeout(() => {
+                    statusElem.textContent = "";
+                    statusElem.classList.remove('status-success');
+                }, 5000);
+            } else {
+                throw new Error(data.error || "Failed to refresh commands");
+            }
+        } catch (error) {
+            statusElem.textContent = "❌ Error: " + error.message;
+            statusElem.classList.remove('status-pending');
+            statusElem.classList.add('status-error');
+        }
+    });
+    
+    // Get command registration status on load
+    async function updateCommandStatus() {
+        try {
+            const response = await fetch('/api/maintenance/status');
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Request additional command data
+                const statsResponse = await fetch('/api/command-stats');
+                const statsData = await statsResponse.json();
+                
+                document.getElementById('registered-commands-count').textContent = 
+                    Object.keys(statsData.commandBreakdown || {}).length || "Unknown";
+            }
+        } catch (error) {
+            console.error("Error fetching command status:", error);
+            document.getElementById('registered-commands-count').textContent = "Error loading";
+        }
+    }
+    
+    // Call this function when page loads
+    updateCommandStatus();
+
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #f0f7ff;
+        }
+        
+        .chart-container {
+            margin-top: 30px;
+            height: 300px;
+        }
+        
+        .password-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        
+        button:hover {
+            background-color: #0069d9;
+        }
+        
+        @media (max-width: 768px) {
+            .admin-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="password-modal" class="password-modal">
+        <div class="modal-content">
+            <h2>Admin Login</h2>
+            <p>Please enter the admin password to access the dashboard.</p>
+            <input type="password" id="admin-password" placeholder="Enter password">
+            <button onclick="checkPassword()">Login</button>
+        </div>
+    </div>
+
+    <header>
+        <h1>Location Bot Admin Dashboard</h1>
+        <p>Monitor your Discord bot's performance and usage</p>
+    </header>
+    
+    <div class="container">
+        <div id="admin-content" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Servers</h3>
+                    <div class="stat-value" id="server-count">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Users</h3>
+                    <div class="stat-value" id="user-count">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Commands Used</h3>
+                    <div class="stat-value" id="command-count">-</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Top Command</h3>
+                    <div class="stat-value" id="top-command">-</div>
+                </div>
+            </div>
+            
+            <div class="admin-panel">
+                <div class="sidebar">
+                    <h2>Navigation</h2>
+                    <ul>
+                        <li><a href="#dashboard">Dashboard</a></li>
+                        <li><a href="#commands">Command Logs</a></li>
+                        <li><a href="#users">User Analytics</a></li>
+                        <li><a href="#maintenance">Maintenance Mode</a></li>
+                        <li><a href="#logs">System Logs</a></li>
+                    </ul>
+                    
+                    <h3>Filter Options</h3>
+                    <div>
+                        <label for="date-filter">Date Range:</label>
+                        <select id="date-filter" onchange="filterData()">
+                            <option value="today">Today</option>
+                            <option value="week" selected>Past Week</option>
+                            <option value="month">Past Month</option>
+                            <option value="all">All Time</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="main-content">
+                    <div id="dashboard-section">
+                        <h2>Dashboard Overview</h2>
+                        <div class="chart-container">
+                            <canvas id="commands-chart"></canvas>
+                        </div>
+                        
+                        <h3>Command Usage Breakdown</h3>
+                        <div class="chart-container">
+                            <canvas id="command-breakdown"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div id="commands-section" style="display: none;">
+                        <h2>Command Usage Logs</h2>
+                        <table id="command-logs">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>User</th>
+                                    <th>Server</th>
+                                    <th>Command</th>
+                                    <th>Options</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Command logs will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="users-section" style="display: none;">
+                        <h2>User Analytics</h2>
+                        <div class="user-analytics-summary">
+                            <div class="user-stat-card">
+                                <div class="user-stat-number" id="total-unique-users">--</div>
+                                <div>Unique Users</div>
+                            </div>
+                            <div class="user-stat-card">
+                                <div class="user-stat-number" id="avg-commands-per-user">--</div>
+                                <div>Avg Commands/User</div>
+                            </div>
+                            <div class="user-stat-card">
+                                <div class="user-stat-number" id="new-users-today">--</div>
+                                <div>New Users Today</div>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <h3>User Activity Over Time</h3>
+                            <canvas id="user-activity-chart"></canvas>
+                        </div>
+                        
+                        <div class="user-analytics-grid">
+                            <div class="user-analytics-card">
+                                <h3>Top Users</h3>
+                                <table id="top-users">
+                                    <thead>
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>User</th>
+                                            <th>Commands</th>
+                                            <th>Favorite Command</th>
+                                            <th>Servers</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Top users will be inserted here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="user-analytics-card">
+                                <h3>User Command Distribution</h3>
+                                <canvas id="user-command-distribution"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="user-analytics-card">
+                            <h3>User Engagement</h3>
+                            <div class="user-engagement-grid">
+                                <div class="engagement-card">
+                                    <div class="engagement-title">Power Users</div>
+                                    <div class="engagement-value" id="power-users-count">--</div>
+                                    <div class="engagement-description">Users with 10+ commands</div>
+                                </div>
+                                <div class="engagement-card">
+                                    <div class="engagement-title">Casual Users</div>
+                                    <div class="engagement-value" id="casual-users-count">--</div>
+                                    <div class="engagement-description">Users with 2-9 commands</div>
+                                </div>
+                                <div class="engagement-card">
+                                    <div class="engagement-title">One-time Users</div>
+                                    <div class="engagement-value" id="one-time-users-count">--</div>
+                                    <div class="engagement-description">Users with 1 command</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <script>
+                            // Load user analytics data
+                            async function loadUserAnalytics() {
+                                try {
+                                    // In a real application, this would fetch from your backend
+                                    const response = await fetch('/api/user-analytics', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                            adminPassword: sessionStorage.getItem('adminPassword')
+                                        })
+                                    }).catch(() => ({
+                                        // Mock data if endpoint not available
+                                        ok: true,
+                                        json: () => Promise.resolve({
+                                            uniqueUsers: 87,
+                                            averageCommands: 4.6,
+                                            newUsersToday: 12,
+                                            topUsers: [
+                                                { rank: 1, username: 'User#1234', commandsUsed: 42, favoriteCommand: 'location', serverCount: 3 },
+                                                { rank: 2, username: 'User#5678', commandsUsed: 36, favoriteCommand: 'game', serverCount: 2 },
+                                                { rank: 3, username: 'User#9012', commandsUsed: 29, favoriteCommand: 'iss', serverCount: 1 },
+                                                { rank: 4, username: 'User#3456', commandsUsed: 25, favoriteCommand: 'location', serverCount: 4 },
+                                                { rank: 5, username: 'User#7890', commandsUsed: 18, favoriteCommand: 'customlocation', serverCount: 2 }
+                                            ],
+                                            userEngagement: {
+                                                powerUsers: 15,
+                                                casualUsers: 42,
+                                                oneTimeUsers: 30
+                                            },
+                                            commandDistribution: {
+                                                location: 35,
+                                                game: 25,
+                                                iss: 20,
+                                                customlocation: 15,
+                                                help: 5
+                                            },
+                                            activityData: {
+                                                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                                                datasets: [
+                                                    {
+                                                        label: 'Active Users',
+                                                        data: [28, 32, 36, 29, 33, 42, 38]
+                                                    }
+                                                ]
+                                            }
+                                        })
+                                    }));
+                                    
+                                    const data = await response.json();
+                                    
+                                    // Update user stats
+                                    document.getElementById('total-unique-users').textContent = data.uniqueUsers;
+                                    document.getElementById('avg-commands-per-user').textContent = data.averageCommands;
+                                    document.getElementById('new-users-today').textContent = data.newUsersToday;
+                                    
+                                    // Update engagement stats
+                                    document.getElementById('power-users-count').textContent = data.userEngagement.powerUsers;
+                                    document.getElementById('casual-users-count').textContent = data.userEngagement.casualUsers;
+                                    document.getElementById('one-time-users-count').textContent = data.userEngagement.oneTimeUsers;
+                                    
+                                    // Populate top users table
+                                    const topUsersTable = document.querySelector('#top-users tbody');
+                                    topUsersTable.innerHTML = '';
+                                    
+                                    data.topUsers.forEach(user => {
+                                        const row = document.createElement('tr');
+                                        row.innerHTML = `
+                                            <td>${user.rank}</td>
+                                            <td>${user.username}</td>
+                                            <td>${user.commandsUsed}</td>
+                                            <td>/${user.favoriteCommand}</td>
+                                            <td>${user.serverCount}</td>
+                                        `;
+                                        topUsersTable.appendChild(row);
+                                    });
+                                    
+                                    // Create user activity chart
+                                    createUserActivityChart(data.activityData);
+                                    
+                                    // Create command distribution chart
+                                    createCommandDistributionChart(data.commandDistribution);
+                                    
+                                } catch (error) {
+                                    console.error('Error loading user analytics:', error);
+                                }
+                            }
+                            
+                            function createUserActivityChart(data) {
+                                const ctx = document.getElementById('user-activity-chart').getContext('2d');
+                                
+                                new Chart(ctx, {
+                                    type: 'line',
+                                    data: {
+                                        labels: data.labels,
+                                        datasets: [{
+                                            label: 'Active Users',
+                                            data: data.datasets[0].data,
+                                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                            borderColor: 'rgba(54, 162, 235, 1)',
+                                            borderWidth: 2,
+                                            tension: 0.3,
+                                            fill: true
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        plugins: {
+                                            legend: {
+                                                position: 'top',
+                                            },
+                                            title: {
+                                                display: true,
+                                                text: 'Daily Active Users'
+                                            }
+                                        },
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            function createCommandDistributionChart(data) {
+                                const ctx = document.getElementById('user-command-distribution').getContext('2d');
+                                
+                                new Chart(ctx, {
+                                    type: 'doughnut',
+                                    data: {
+                                        labels: Object.keys(data).map(cmd => `/${cmd}`),
+                                        datasets: [{
+                                            data: Object.values(data),
+                                            backgroundColor: [
+                                                'rgba(255, 99, 132, 0.7)',
+                                                'rgba(54, 162, 235, 0.7)',
+                                                'rgba(255, 206, 86, 0.7)',
+                                                'rgba(75, 192, 192, 0.7)',
+                                                'rgba(153, 102, 255, 0.7)'
+                                            ],
+                                            borderWidth: 1
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        plugins: {
+                                            legend: {
+                                                position: 'right',
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            document.addEventListener('DOMContentLoaded', function() {
+                                // Load user analytics when the user section is shown
+                                document.querySelectorAll('.sidebar a').forEach(link => {
+                                    link.addEventListener('click', function() {
+                                        if (this.getAttribute('href') === '#users') {
+                                            setTimeout(loadUserAnalytics, 100);
+                                        }
+                                    });
+                                });
+                            });
+                        </script>
+                    </div>
+                    
+                    <div id="maintenance-section" style="display: none;">
+                        <h2>Maintenance Mode</h2>
+                        <div class="maintenance-card">
+                            <h3>Bot Status</h3>
+                            <div class="status-indicator">
+                                <span id="status-badge" class="badge online">Online</span>
+                            </div>
+                            
+                            <div class="maintenance-toggle">
+                                <h3>Toggle Maintenance Mode</h3>
+                                <p>When maintenance mode is active, the bot will respond to all commands with a maintenance message.</p>
+                                <label class="switch">
+                                    <input type="checkbox" id="maintenance-toggle">
+                                    <span class="slider round"></span>
+                                </label>
+                                <span id="maintenance-status">Maintenance Mode is OFF</span>
+                            </div>
+                            
+                            <div class="maintenance-message">
+                                <h3>Maintenance Message</h3>
+                                <textarea id="maintenance-message" rows="4" placeholder="Enter the message users will see when the bot is in maintenance mode">🛠️ We're currently performing maintenance on the bot. Please try again later!</textarea>
+                                <div class="maintenance-reason">
+                                    <h4>Maintenance Reason:</h4>
+                                    <input type="text" id="maintenance-reason" placeholder="e.g., Scheduled maintenance, Bug fixes, System upgrade" value="Scheduled maintenance">
+                                </div>
+                                <div class="estimated-time">
+                                    <h4>Estimated Completion Time:</h4>
+                                    <input type="datetime-local" id="maintenance-end-time">
+                                </div>
+                                <button id="save-maintenance" class="primary-button">Save Changes</button>
+                            </div>
+                            
+                            <div class="maintenance-log">
+                                <h3>Recent Maintenance History</h3>
+                                <table id="maintenance-history">
+                                    <thead>
+                                        <tr>
+                                            <th>Start Time</th>
+                                            <th>End Time</th>
+                                            <th>Duration</th>
+                                            <th>Reason</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- This will be populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="logs-section" style="display: none;">
+                        <h2>System Logs</h2>
+                        <div class="logs-container">
+                            <div class="terminal-header">
+                                <div class="terminal-title">Command Logs Terminal</div>
+                                <div class="terminal-controls">
+                                    <button id="refresh-logs" class="terminal-button">Refresh</button>
+                                    <button id="clear-logs" class="terminal-button">Clear</button>
+                                    <button id="export-logs" class="terminal-button">Export</button>
+                                </div>
+                            </div>
+                            <div class="terminal">
+                                <pre id="logs-output">Loading logs...</pre>
+                            </div>
+
+                            <div class="log-filters">
+                                <label for="log-date">Date:</label>
+                                <input type="date" id="log-date" name="log-date">
+                                <label for="log-type">Type:</label>
+                                <select id="log-type">
+                                    <option value="all">All</option>
+                                    <option value="command">Commands</option>
+                                    <option value="error">Errors</option>
+                                    <option value="system">System</option>
+                                </select>
+                                <button id="apply-filters" class="terminal-button">Apply Filters</button>
+                                <span id="log-count" class="log-count">0 logs</span>
+                            </div>
+                        </div>
+                        
+                        <div class="terminal-tabs">
+                            <button class="tab-button active" data-tab="command-logs">Command Logs</button>
+                            <button class="tab-button" data-tab="system-logs">System Logs</button>
+                            <button class="tab-button" data-tab="error-logs">Error Logs</button>
+                        </div>
+                        
+                        <div class="log-stats">
+                            <h3>Log Statistics</h3>
+                            <div class="log-stats-grid">
+                                <div class="log-stat-card">
+                                    <h4>Total Commands</h4>
+                                    <div id="total-commands-stat">Loading...</div>
+                                </div>
+                                <div class="log-stat-card">
+                                    <h4>Most Used Command</h4>
+                                    <div id="most-used-command">Loading...</div>
+                                </div>
+                                <div class="log-stat-card">
+                                    <h4>Errors Today</h4>
+                                    <div id="errors-today">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <script>
+                        // Logs functionality
+                        async function loadLogData() {
+                            const logsOutput = document.getElementById('logs-output');
+                            logsOutput.textContent = 'Loading logs...';
+                            
+                            try {
+                                const response = await fetch('/api/logs', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        adminPassword: sessionStorage.getItem('adminPassword'),
+                                        date: document.getElementById('log-date').value,
+                                        type: document.getElementById('log-type').value
+                                    })
+                                });
+                                
+                                if (!response.ok) {
+                                    throw new Error('Failed to fetch logs');
+                                }
+                                
+                                const logs = await response.json();
+                                
+                                if (logs.length === 0) {
+                                    logsOutput.textContent = 'No logs found for the selected criteria.';
+                                    document.getElementById('log-count').textContent = '0 logs';
+                                    return;
+                                }
+                                
+                                // Update log count
+                                document.getElementById('log-count').textContent = `${logs.length} logs`;
+                                
+                                // Format logs with color coding
+                                let formattedLogs = '';
+                                logs.forEach(log => {
+                                    // Format timestamp with color
+                                    const timestamp = new Date(log.timestamp).toLocaleString();
+                                    formattedLogs += `<span class="log-timestamp">[${timestamp}]</span> `;
+                                    
+                                    // Format command type with color
+                                    if (log.commandName) {
+                                        formattedLogs += `<span class="log-command">/${log.commandName}</span> `;
+                                    }
+                                    
+                                    // Format user and server info
+                                    formattedLogs += `<span class="log-user">by ${log.username}</span> in <span class="log-server">${log.guildName}</span>\n`;
+                                    
+                                    // Format options if any
+                                    if (log.options && Object.keys(log.options).length > 0) {
+                                        formattedLogs += `  <span class="log-options">Options: ${JSON.stringify(log.options)}</span>\n`;
+                                    }
+                                    
+                                    formattedLogs += '\n';
+                                });
+                                
+                                logsOutput.innerHTML = formattedLogs;
+                                
+                                // Update log statistics
+                                updateLogStatistics(logs);
+                            } catch (error) {
+                                console.error('Error loading logs:', error);
+                                logsOutput.textContent = 'Error loading logs: ' + error.message;
+                            }
+                        }
+                        
+                        function updateLogStatistics(logs) {
+                            // Count commands
+                            const commandCounts = {};
+                            logs.forEach(log => {
+                                if (log.commandName) {
+                                    commandCounts[log.commandName] = (commandCounts[log.commandName] || 0) + 1;
+                                }
+                            });
+                            
+                            // Find most used command
+                            let mostUsedCommand = 'None';
+                            let highestCount = 0;
+                            
+                            for (const [command, count] of Object.entries(commandCounts)) {
+                                if (count > highestCount) {
+                                    mostUsedCommand = command;
+                                    highestCount = count;
+                                }
+                            }
+                            
+                            // Count errors
+                            const errorsToday = logs.filter(log => log.error).length;
+                            
+                            // Update statistics display
+                            document.getElementById('total-commands-stat').textContent = logs.length;
+                            document.getElementById('most-used-command').textContent = 
+                                highestCount > 0 ? `/${mostUsedCommand} (${highestCount})` : 'None';
+                            document.getElementById('errors-today').textContent = errorsToday;
+                        }
+                        
+                        // Set up log filter event listeners
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const refreshLogsBtn = document.getElementById('refresh-logs');
+                            const clearLogsBtn = document.getElementById('clear-logs');
+                            const exportLogsBtn = document.getElementById('export-logs');
+                            const applyFiltersBtn = document.getElementById('apply-filters');
+                            const tabButtons = document.querySelectorAll('.tab-button');
+                            
+                            if (refreshLogsBtn) {
+                                refreshLogsBtn.addEventListener('click', loadLogData);
+                            }
+                            
+                            if (clearLogsBtn) {
+                                clearLogsBtn.addEventListener('click', function() {
+                                    document.getElementById('logs-output').textContent = 'Logs cleared.';
+                                    document.getElementById('log-count').textContent = '0 logs';
+                                });
+                            }
+                            
+                            if (exportLogsBtn) {
+                                exportLogsBtn.addEventListener('click', function() {
+                                    const logsContent = document.getElementById('logs-output').innerText;
+                                    const blob = new Blob([logsContent], { type: 'text/plain' });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `logs-${document.getElementById('log-date').value}.txt`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    URL.revokeObjectURL(url);
+                                });
+                            }
+                            
+                            if (applyFiltersBtn) {
+                                applyFiltersBtn.addEventListener('click', loadLogData);
+                            }
+                            
+                            // Tab functionality
+                            if (tabButtons) {
+                                tabButtons.forEach(button => {
+                                    button.addEventListener('click', function() {
+                                        // Remove active class from all buttons
+                                        tabButtons.forEach(btn => btn.classList.remove('active'));
+                                        // Add active class to clicked button
+                                        this.classList.add('active');
+                                        
+                                        // Change log type based on tab
+                                        const tabType = this.dataset.tab;
+                                        const logTypeSelect = document.getElementById('log-type');
+                                        
+                                        switch(tabType) {
+                                            case 'command-logs':
+                                                logTypeSelect.value = 'command';
+                                                break;
+                                            case 'system-logs':
+                                                logTypeSelect.value = 'system';
+                                                break;
+                                            case 'error-logs':
+                                                logTypeSelect.value = 'error';
+                                                break;
+                                        }
+                                        
+                                        // Load the logs with the new filter
+                                        loadLogData();
+                                    });
+                                });
+                            }
+                            
+                            // Set default date to today
+                            const today = new Date().toISOString().split('T')[0];
+                            const dateInput = document.getElementById('log-date');
+                            if (dateInput) {
+                                dateInput.value = today;
+                            }
+                            
+                            // Load logs on page load
+                            loadLogData();
+                        });
+                    </script>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Password protection
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('password-modal').style.display = 'flex';
+            
+            // Set current date and time for maintenance end time input
+            const now = new Date();
+            now.setHours(now.getHours() + 2); // Default: 2 hours from now
+            const formattedDateTime = now.toISOString().slice(0, 16);
+            document.getElementById('maintenance-end-time').value = formattedDateTime;
+            
+            // Handle URL hash for navigation
+            window.addEventListener('hashchange', handleHashChange);
+            if (sessionStorage.getItem('adminLoggedIn')) {
+                document.getElementById('password-modal').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'block';
+                handleHashChange();
+                loadDashboardData();
+            }
+        });
+        
+        function checkPassword() {
+            const password = document.getElementById('admin-password').value;
+            // Simple password protection for demo - replace with server-side auth in production
+            if (password === "adminaccess") {
+                document.getElementById('password-modal').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'block';
+                sessionStorage.setItem('adminLoggedIn', 'true');
+                sessionStorage.setItem('adminPassword', password);
+                handleHashChange();
+                loadDashboardData();
+            } else {
+                alert("Incorrect password!");
+            }
+        }
+        
+        // Handle hash-based navigation
+        function handleHashChange() {
+            const hash = window.location.hash.substring(1) || 'dashboard';
+            showSection(hash);
+        }
+        
+        // Navigation
+        function showSection(section) {
+            // Hide all sections
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('commands-section').style.display = 'none';
+            document.getElementById('users-section').style.display = 'none';
+            document.getElementById('maintenance-section').style.display = 'none';
+            document.getElementById('logs-section').style.display = 'none';
+            
+            // Show the selected section
+            const sectionElement = document.getElementById(section + '-section');
+            if (sectionElement) {
+                sectionElement.style.display = 'block';
+            } else {
+                document.getElementById('dashboard-section').style.display = 'block';
+            }
+            
+            // Update URL hash without triggering hashchange event
+            history.replaceState(null, null, '#' + section);
+            
+            // Highlight active navigation item
+            document.querySelectorAll('.sidebar li a').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + section) {
+                    link.classList.add('active');
+                }
+            });
+            
+            // Load section-specific data
+            if (section === 'logs') {
+                loadLogData();
+            }
+        }
+        
+        // Main function to load dashboard data
+        async function loadDashboardData() {
+            try {
+                // Load stats
+                const statsResponse = await fetch('/api/stats');
+                const statsData = await statsResponse.json();
+                
+                document.getElementById('server-count').textContent = statsData.servers.toLocaleString();
+                document.getElementById('user-count').textContent = statsData.users.toLocaleString();
+                document.getElementById('command-count').textContent = statsData.commandsUsed.toLocaleString();
+                
+                // Load command stats
+                const commandStatsResponse = await fetch('/api/command-stats');
+                const commandData = await commandStatsResponse.json();
+                
+                // Find top command
+                let topCommand = "None";
+                let topCount = 0;
+                
+                for (const [command, count] of Object.entries(commandData.commandBreakdown)) {
+                    if (count > topCount) {
+                        topCount = count;
+                        topCommand = command;
+                    }
+                }
+                
+                document.getElementById('top-command').textContent = `/${topCommand}`;
+                
+                // Set up charts
+                createCommandChart(commandData);
+                
+                // TODO: We would load actual command logs from a server endpoint here
+                // For demo, let's create some placeholder data
+                const mockLogs = [
+                    { time: "2023-09-10T12:34:56Z", user: "User#1234", server: "Server Alpha", command: "location", options: "place: London" },
+                    { time: "2023-09-10T13:45:12Z", user: "User#5678", server: "Server Beta", command: "iss", options: "" },
+                    { time: "2023-09-11T09:22:33Z", user: "User#9012", server: "Server Gamma", command: "game", options: "type: landmarks" }
+                ];
+                
+                populateCommandLogs(mockLogs);
+                
+            } catch (error) {
+                console.error("Error loading dashboard data:", error);
+            }
+        }
+        
+        function createCommandChart(data) {
+            // Extract data for chart
+            const commands = Object.keys(data.commandBreakdown);
+            const counts = Object.values(data.commandBreakdown);
+            
+            // Command breakdown pie chart
+            const breakdownCtx = document.getElementById('command-breakdown').getContext('2d');
+            new Chart(breakdownCtx, {
+                type: 'pie',
+                data: {
+                    labels: commands.map(cmd => '/' + cmd),
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: [
+                            '#4285F4', '#EA4335', '#FBBC05', '#34A853', 
+                            '#FF6D01', '#46BDC6', '#7A5195', '#003F5C'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Command Usage Distribution'
+                        }
+                    }
+                }
+            });
+            
+            // Weekly trend line chart (mocked data for demo)
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const mockDailyData = [12, 19, 15, 27, 22, 37, 25];
+            
+            const trendsCtx = document.getElementById('commands-chart').getContext('2d');
+            new Chart(trendsCtx, {
+                type: 'line',
+                data: {
+                    labels: days,
+                    datasets: [{
+                        label: 'Commands Used',
+                        data: mockDailyData,
+                        borderColor: '#4285F4',
+                        backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Weekly Command Usage Trends'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Commands'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function populateCommandLogs(logs) {
+            const tbody = document.querySelector('#command-logs tbody');
+            tbody.innerHTML = '';
+            
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                
+                // Format time
+                const date = new Date(log.time);
+                const formattedTime = date.toLocaleString();
+                
+                row.innerHTML = `
+                    <td>${formattedTime}</td>
+                    <td>${log.user}</td>
+                    <td>${log.server}</td>
+                    <td>/${log.command}</td>
+                    <td>${log.options}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        function filterData() {
+            // This would filter data based on the selected date range
+            // For the demo, we'll just log the selected value
+            const filter = document.getElementById('date-filter').value;
+            console.log("Filter applied:", filter);
+            // In a real implementation, we would re-fetch or filter the displayed data
+        }
+        
+        // Maintenance Mode Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const maintenanceToggle = document.getElementById('maintenance-toggle');
+            const statusBadge = document.getElementById('status-badge');
+            const maintenanceStatus = document.getElementById('maintenance-status');
+            const saveButton = document.getElementById('save-maintenance');
+            
+            if (maintenanceToggle) {
+                maintenanceToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        statusBadge.textContent = 'Under Maintenance';
+                        statusBadge.classList.remove('online');
+                        statusBadge.classList.add('maintenance');
+                        maintenanceStatus.textContent = 'Maintenance Mode is ON';
+                    } else {
+                        statusBadge.textContent = 'Online';
+                        statusBadge.classList.remove('maintenance');
+                        statusBadge.classList.add('online');
+                        maintenanceStatus.textContent = 'Maintenance Mode is OFF';
+                    }
+                });
+            }
+            
+            if (saveButton) {
+                saveButton.addEventListener('click', async function() {
+                    const isMaintenanceMode = maintenanceToggle.checked;
+                    const maintenanceMessage = document.getElementById('maintenance-message').value;
+                    const maintenanceReason = document.getElementById('maintenance-reason').value;
+                    const endTime = document.getElementById('maintenance-end-time').value;
+                    
+                    try {
+                        const response = await fetch('/api/maintenance/toggle', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                adminPassword: sessionStorage.getItem('adminPassword') || 'adminaccess',
+                                enabled: isMaintenanceMode,
+                                message: maintenanceMessage,
+                                reason: maintenanceReason,
+                                endTime: endTime || null
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            alert(`Maintenance settings saved!\nStatus: ${isMaintenanceMode ? 'ON' : 'OFF'}\nMessage: ${maintenanceMessage}\nReason: ${maintenanceReason}\nEnd Time: ${endTime}`);
+                            
+                            // Add to maintenance history if turning on
+                            if (isMaintenanceMode) {
+                                addMaintenanceHistoryEntry(endTime, maintenanceReason);
+                            }
+                        } else {
+                            alert(`Failed to save maintenance settings: ${data.error}`);
+                        }
+                    } catch (error) {
+                        console.error("Error saving maintenance settings:", error);
+                        alert(`Error saving maintenance settings: ${error.message}`);
+                    }
+                });
+            }
+            
+            // Add sample maintenance history
+            addMaintenanceHistoryEntry('2023-03-08T14:00', 'Scheduled database upgrades');
+        });
+        
+        function addMaintenanceHistoryEntry(endTimeStr, reason) {
+            const historyTable = document.getElementById('maintenance-history').getElementsByTagName('tbody')[0];
+            const now = new Date();
+            const endTime = new Date(endTimeStr);
+            
+            // Calculate duration
+            const durationMs = endTime - now;
+            const hours = Math.floor(durationMs / (1000 * 60 * 60));
+            const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+            const durationStr = `${hours}h ${minutes}m`;
+            
+            // Format dates for display
+            const startTimeFormatted = now.toLocaleString();
+            const endTimeFormatted = endTime.toLocaleString();
+            
+            // Create new row
+            const newRow = historyTable.insertRow(0);
+            newRow.innerHTML = `
+                <td>${startTimeFormatted}</td>
+                <td>${endTimeFormatted}</td>
+                <td>${durationStr}</td>
+                <td>${reason || 'Maintenance'}</td>
+            `;
+        }
+    </script>
+</body>
+</html>
