@@ -1,1 +1,53 @@
-# Location-Bot
+# Location Bot
+
+Location Bot is a Discord bot that provides location-based information using Mapbox. Users can retrieve timezone details and other location data through simple slash commands.
+
+## Features
+- Get Location information for a specific place.
+- Uses LocationIQ (OpenStreetMap) and Yandex Maps for accurate location data.
+- Slash command support.
+
+## Commands
+### Location Commands:
+- `/location place: map_type:` - Get the timezone of a specific location.
+- `/customlocation latitude: longitude: map_type:` - Get location details using specific latitude and longitude coordinates.
+- `/iss` - Get the current location of the ISS.
+- `/game type: difficulty:` - Play a location guessing game! Choose from World Landmarks, Capital Cities, or Random Locations.
+- `/info` - Get information about the bot.
+
+## Installation
+### Requirements
+- Node.js v18+
+- A Discord bot token
+- A LocationIQ API Key
+
+### Setup
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/Gatshja/location-bot.git
+   cd location-bot
+   ```
+2. Install dependencies:
+   ```sh
+   npm install
+   ```
+3. Create a `.env` file and add your credentials:
+   ```env
+DISCORD_BOT_TOKEN=YOU-TOKEN-BOT
+CLIENT_ID=You-CLIENTID-BOT
+LOCATIONIQ_API_KEY=You-LocationIQ-KEY
+   ```
+4. Start the bot:
+   ```sh
+   node index.js
+   ```
+
+## Hosting
+You can host the bot on Free Hosting Like [SillyDev](https://sillydev.co.uk) or any Node.js-supported VPS.
+- **Warning if You need to enabled Dashboard Page Please Use Cloudflared Tunnel too or ngrok**
+
+## License
+This project is licensed under the MIT License.
+
+## Credits
+Developed by Robloxbot Inc, Software Developers. with **NETTH** Host Team
