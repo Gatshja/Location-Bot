@@ -31,12 +31,7 @@ A Location App, powered by API, that lets you explore anywhere.
    ```sh
    npm install
    ```
-3. Create a `.env` file and add your credentials:
-`
-DISCORD_BOT_TOKEN=YOU-TOKEN-BOT
-CLIENT_ID=You-CLIENTID-BOT
-LOCATIONIQ_API_KEY=You-LocationIQ-KEY
-`
+3. Edit a `.env.example` to `.env` file and add your credentials
 
 4. Start the bot:
    ```node index.js```
