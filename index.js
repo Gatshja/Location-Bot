@@ -827,6 +827,9 @@ const express = require('express')
 const app = express();
 const port = 6484
 
+// Trust proxy for proper OAuth behind services like render.com
+app.set('trust proxy', 1);
+
 // Serve static files after route handlers
 // Configure session
 app.use(session({

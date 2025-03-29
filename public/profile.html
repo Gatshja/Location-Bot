@@ -6,23 +6,56 @@
     <title>Profile - Discord OAuth</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary: #c70000;
+            --primary-dark: #990000;
+            --primary-light: #ff3333;
+            --secondary: #4CAF50;
+            --text-light: #ffffff;
+            --text-dark: #333333;
+            --bg-light: #f8f9fa;
+            --bg-dark: #333333;
+            --transition: all 0.3s ease;
+        }
+
         body {
-            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f9f9f9;
-            color: #2c2c2c;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
             line-height: 1.6;
+            background-image: url('https://files.catbox.moe/kz5squ.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
         }
-        
+
+        .page-wrapper {
+            position: relative;
+            min-height: 100vh;
+        }
+
+        .page-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: -1;
+        }
+
         /* Navbar Styles */
         .navbar {
-            background: #5865F2;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
             padding: 1rem;
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         }
 
         .navbar-container {
@@ -34,13 +67,17 @@
         }
 
         .navbar-brand {
-            color: white;
+            color: var(--text-light);
             font-size: 24px;
             text-decoration: none;
             font-weight: bold;
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .navbar-brand i {
+            color: var(--primary);
         }
 
         .nav-links {
@@ -55,20 +92,36 @@
         }
 
         .nav-links a {
-            color: white;
+            color: var(--text-light);
             text-decoration: none;
             padding: 8px 16px;
             border-radius: 4px;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             display: block;
             font-weight: 500;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: var(--transition);
+            transform: translateX(-50%);
+        }
+
+        .nav-links a:hover::after {
+            width: 80%;
         }
 
         .nav-links a:hover {
-            background: rgba(255, 255, 255, 0.2);
             transform: translateY(-2px);
         }
-        
+
         /* Mobile Menu Styles */
         .mobile-menu-icon {
             display: none;
@@ -93,6 +146,13 @@
             font-size: 28px;
             color: white;
             cursor: pointer;
+            z-index: 1001;
+            background: rgba(0, 0, 0, 0.3);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
         }
 
         /* Mobile responsive */
@@ -108,26 +168,68 @@
             .nav-links {
                 position: fixed;
                 top: 0;
-                right: -100%;
-                width: 280px;
-                height: 100%;
-                background: #5865F2;
+                left: -110%;
+                width: 100vw;
+                height: 100vh;
+                background: #222;
                 flex-direction: column;
                 padding: 70px 0 20px;
-                z-index: 999;
-                transition: right 0.3s ease;
-                box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+                z-index: 1001;
+                transition: left 0.3s ease;
+                margin: 0;
+                overflow-y: auto;
+                overflow-x: hidden;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                visibility: hidden;
             }
 
             .nav-links.active {
-                right: 0;
+                left: 0;
+                visibility: visible;
+            }
+
+            .nav-links li {
+                margin: 0;
+                padding: 0;
+                width: 100%;
             }
 
             .nav-links a {
-                padding: 15px 25px;
-                width: 100%;
-                text-align: left;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                padding: 20px;
+                width: 100vw;
+                text-align: center;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                font-size: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 15px;
+                color: #fff;
+                font-weight: normal;
+            }
+
+            .nav-links a i {
+                width: 24px;
+                text-align: center;
+                font-size: 18px;
+                color: #aaa;
+            }
+
+            .nav-links a:hover {
+                background: rgba(255, 255, 255, 0.05);
+                transform: none;
+            }
+
+            .nav-links a.active {
+                background: rgba(255, 255, 255, 0.1);
+                border-left: 3px solid var(--primary);
+                padding-left: 17px;
+            }
+
+            .nav-links a::after {
+                display: none;
             }
         }
 
@@ -277,6 +379,10 @@
             color: white;
         }
 
+        .permission-note {
+            font-size: 0.7em;
+            color: #888;
+        }
 
         .server-action {
             margin-top: 10px;
@@ -311,19 +417,51 @@
             background-color: #3ca374;
         }
 
+        .servers-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .servers-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .servers-header h2 {
+            color: var(--primary);
+            margin: 0;
+        }
+
         .logout-btn {
-            background-color: #ff3860;
+            display: inline-block;
+            padding: 15px 35px;
+            background: var(--primary);
             color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: 600;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            box-shadow: 0 4px 15px rgba(199, 0, 0, 0.3);
+            border: 2px solid var(--primary);
+            letter-spacing: 1px;
             cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.2s;
         }
 
         .logout-btn:hover {
-            background-color: #e6304e;
+            background: var(--primary-light);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(199, 0, 0, 0.4);
         }
 
         .config-panel {
@@ -417,32 +555,33 @@
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="/" class="navbar-brand"><i class="fas fa-map-marker-alt"></i> Location</a>
-            <div class="mobile-menu-icon" id="mobile-menu-btn">
-                <div class="bar"></div>
-                <div class="bar"></div>
-                <div class="bar"></div>
+    <div class="page-wrapper">
+        <nav class="navbar">
+            <div class="navbar-container">
+                <a href="/" class="navbar-brand"><i class="fas fa-map-marker-alt"></i> Location</a>
+                <div class="mobile-menu-icon" id="mobile-menu-btn">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                </div>
+                <ul class="nav-links" id="mobile-nav">
+                    <div class="close-menu" id="close-menu-btn">×</div>
+                    <li><a href="/" onclick="showPage('home'); return false;"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="/location-search" onclick="showPage('locationSearch'); return false;"><i class="fas fa-search-location"></i> Location Search</a></li>
+                    <li><a href="/status" onclick="showPage('status'); return false;"><i class="fas fa-chart-line"></i> Status</a></li>
+                    <li><a href="/info" onclick="showPage('info'); return false;"><i class="fas fa-info-circle"></i> Info</a></li>
+                    <li><a href="/profile" class="active"><i class="fas fa-user"></i> My Profile</a></li>
+                </ul>
             </div>
-            <ul class="nav-links" id="mobile-nav">
-                <li><a href="/"><i class="fas fa-home"></i> Home</a></li>
-                <li><a href="/location-search"><i class="fas fa-search-location"></i> Location Search</a></li>
-                <li><a href="/status"><i class="fas fa-chart-line"></i> Status</a></li>
-                <li><a href="/info"><i class="fas fa-info-circle"></i> Info</a></li>
-                <li><a href="/profile" class="active"><i class="fas fa-user"></i> My Profile</a></li>
-                <div class="close-menu" id="close-menu-btn">×</div>
-            </ul>
-        </div>
-    </nav>
-    
-    <div class="container">
-        <header>
-            <h1>Your Discord Profile</h1>
-            <p class="subtitle">Welcome to your profile page</p>
-        </header>
+        </nav>
 
-        <div class="profile-section">
+    <div class="container">
+            <header>
+                <h1 style="color: var(--text-light); text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);">Your Discord Profile</h1>
+                <p class="subtitle" style="color: var(--text-light); text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);">Welcome to your profile page</p>
+            </header>
+
+            <div class="profile-section" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-light);">
             <div class="profile-header">
                 <img id="avatar" class="avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Profile picture">
                 <div class="profile-info">
@@ -453,25 +592,40 @@
 
             <div class="profile-details">
                 <div class="detail-row">
-                    <div class="detail-label">Email:</div>
-                    <div id="email">Loading...</div>
+                    <div class="detail-label" style="color: var(--primary);">Email:</div>
+                    <div id="email" style="color: var(--text-light);">Loading...</div>
                 </div>
                 <div class="detail-row">
-                    <div class="detail-label">User ID:</div>
-                    <div id="user-id">Loading...</div>
+                    <div class="detail-label" style="color: var(--primary);">User ID:</div>
+                    <div id="user-id" style="color: var(--text-light);">Loading...</div>
                 </div>
                 <div class="detail-row">
-                    <div class="detail-label">Joined Discord:</div>
-                    <div id="joined-date">Loading...</div>
+                    <div class="detail-label" style="color: var(--primary);">Joined Discord:</div>
+                    <div id="joined-date" style="color: var(--text-light);">Loading...</div>
                 </div>
             </div>
         </div>
 
-        <!-- Servers section removed -->
+        <!-- Servers Section -->
+        <div class="servers-section">
+            <div class="servers-header">
+                <h2>Your Discord Servers</h2>
+            </div>
+            <div id="servers-container" class="servers-grid">
+                <!-- Servers will be populated here dynamically -->
+                <div style="text-align: center; grid-column: 1 / -1; padding: 20px;">
+                    <div class="fa-3x">
+                        <i class="fas fa-spinner fa-pulse"></i>
+                    </div>
+                    <p>Loading your servers...</p>
+                </div>
+            </div>
+        </div>
 
         <div class="text-center">
             <a href="/logout" class="logout-btn">Logout</a>
         </div>
+    </div>
     </div>
 
     <script>
@@ -513,54 +667,118 @@
                 : 'https://cdn.discordapp.com/embed/avatars/0.png';
             document.getElementById('avatar').src = avatar;
         }
-        
+
         // Mobile menu toggle function
         function toggleMobileMenu() {
             const navLinks = document.getElementById('mobile-nav');
             navLinks.classList.toggle('active');
-            
-            // Add overlay if menu is active
+
+            // Toggle body scrolling based on menu state
             if (navLinks.classList.contains('active')) {
-                const overlay = document.createElement('div');
-                overlay.className = 'mobile-menu-overlay';
-                overlay.style.position = 'fixed';
-                overlay.style.top = '0';
-                overlay.style.left = '0';
-                overlay.style.width = '100%';
-                overlay.style.height = '100%';
-                overlay.style.background = 'rgba(0,0,0,0.5)';
-                overlay.style.zIndex = '998';
-                
-                overlay.addEventListener('click', toggleMobileMenu);
-                document.body.appendChild(overlay);
-                
-                // Prevent scrolling when menu is open
-                document.body.style.overflow = 'hidden';
+                document.body.style.overflow = 'hidden'; // Prevent scrolling
+                // Ensure menu is visible
+                navLinks.style.visibility = 'visible';
             } else {
-                // Remove overlay and enable scrolling
-                const overlay = document.querySelector('.mobile-menu-overlay');
-                if (overlay) {
-                    overlay.remove();
+                document.body.style.overflow = ''; // Allow scrolling
+                // Use setTimeout to hide the menu after transition completes
+                setTimeout(() => {
+                    if (!navLinks.classList.contains('active')) {
+                        navLinks.style.visibility = 'hidden';
+                    }
+                }, 300); // Match the transition duration
+            }
+        }
+
+        // Function to load user servers
+        async function loadUserServers() {
+            try {
+                const response = await fetch('/api/user');
+                const userData = await response.json();
+
+                // Get the servers container
+                const serversContainer = document.getElementById('servers-container');
+
+                // Check if user has any guilds/servers
+                if (!userData.guilds || userData.guilds.length === 0) {
+                    serversContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">You are not a member of any Discord servers.</p>';
+                    return;
                 }
-                document.body.style.overflow = '';
+
+                // Create HTML for each server
+                let serversHTML = '';
+                userData.guilds.forEach(server => {
+                    const serverIcon = server.icon 
+                        ? `https://cdn.discordapp.com/icons/${server.id}/${server.icon}.png` 
+                        : 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+                    serversHTML += `
+                    <div class="server-card">
+                        ${server.isAdmin ? '<span class="admin-badge">Admin</span>' : ''}
+                        <img src="${serverIcon}" alt="${server.name}" class="server-icon">
+                        <h3>${server.name}</h3>
+                        <div class="bot-status ${server.botInServer ? 'bot-in-server' : 'bot-not-in-server'}">
+                            ${server.isAdmin ? '' : '<span class="permission-note">Requires admin permission</span>'}
+                        </div>
+                        <div class="server-action">
+                            ${server.isAdmin ? 
+                              `<a href="/server/${server.id}/config" class="btn-server btn-configure">Configure</a>` : ''}
+                            ${!server.botInServer ? 
+                              `<a href="${server.inviteUrl}" class="btn-server btn-invite">Add Bot</a>` : ''}
+                        </div>
+                    </div>`;
+                    const serverCard = document.createElement('div');
+                    serverCard.innerHTML = serversHTML;
+
+
+                    // Add click handler for the entire card (if actions are available)
+                    if (server.isAdmin) {
+                        serverCard.style.cursor = 'pointer';
+                        serverCard.addEventListener('click', (e) => {
+                            // Don't trigger if clicking on the action button itself
+                            if (e.target.closest('.server-action')) return;
+
+                            // Redirect to appropriate page
+                            if (server.botInServer) {
+                                window.location.href = `/server/${server.id}/config`;
+                            } else if (server.inviteUrl) {
+                                window.location.href = server.inviteUrl;
+                            }
+                        });
+                    }
+                });
+
+                // Update the servers container
+                serversContainer.innerHTML = serversHTML;
+            } catch (error) {
+                console.error('Error loading servers:', error);
+                const serversContainer = document.getElementById('servers-container');
+                serversContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #ff3860;">Failed to load your servers. Please try again later.</p>';
             }
         }
 
         // Load user data when page loads
         window.addEventListener('DOMContentLoaded', () => {
             fetchUserData();
-            
+            loadUserServers();
+
             // Set up mobile menu toggle
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
             if (mobileMenuBtn) {
                 mobileMenuBtn.addEventListener('click', toggleMobileMenu);
             }
-            
+
             const closeMenuBtn = document.getElementById('close-menu-btn');
             if (closeMenuBtn) {
                 closeMenuBtn.addEventListener('click', toggleMobileMenu);
             }
         });
+
+        // Add showPage function for navigation
+        function showPage(pageId) {
+            console.log(`Showing page: ${pageId}`);
+            // This is a stub function to prevent errors
+            // The actual implementation is in script.js
+        }
     </script>
 </body>
 </html>

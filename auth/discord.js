@@ -9,7 +9,8 @@ passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
     callbackURL: process.env.DISCORD_CALLBACK_URL || 'http://localhost:6484/auth/discord/callback',
-    scope: ['identify', 'email', 'guilds']
+    scope: ['identify', 'email', 'guilds'],
+    proxy: true
 }, function(accessToken, refreshToken, profile, done) {
     // Store the user profile in the session
     return done(null, profile);

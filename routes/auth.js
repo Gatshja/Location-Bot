@@ -22,8 +22,12 @@ router.get('/auth/discord', passport.authenticate('discord'));
 router.get('/auth/discord/callback', 
     passport.authenticate('discord', { 
         failureRedirect: '/login',
-        successRedirect: '/profile'
-    })
+        failureMessage: true
+    }),
+    (req, res) => {
+        // Successfully authenticated
+        res.redirect('/profile');
+    }
 );
 
 // Logout route
@@ -113,54 +117,82 @@ router.get('/api/search-history', isAuthenticated, (req, res) => {
 router.get('/server/:serverId/config', isAuthenticated, (req, res) => {
     const { serverId } = req.params;
 
-    // Check if user has access to this server and if the bot is in the server
+    // Check if user has access to this server
     const userGuilds = req.user.guilds || [];
     const targetGuild = userGuilds.find(g => g.id === serverId);
 
-    if (!targetGuild || !targetGuild.isAdmin) {
-        return res.status(403).send('You do not have permission to configure this server');
+    if (!targetGuild) {
+        return res.status(403).send('Server not found in your Discord servers list');
+    }
+    
+    if (!targetGuild.isAdmin) {
+        return res.status(403).send('You need to be an admin of this Discord server to configure the bot');
     }
 
-    if (!targetGuild.botInServer) {
-        // Redirect to invite page if bot is not in the server
-        return res.redirect(targetGuild.inviteUrl);
-    }
+    // Serve the server configuration page
+    res.sendFile('server-config.html', { root: './public' });
+});
 
-    // In a real implementation, you would load the server configuration page
-    // For now, we'll just send a placeholder response
-    res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Server Configuration - ${targetGuild.name}</title>
-            <style>
-                body {
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    max-width: 800px;
-                    margin: 0 auto;
-                    padding: 20px;
-                }
-                h1 {
-                    color: #5865F2;
-                }
-                .back-link {
-                    display: inline-block;
-                    margin-top: 20px;
-                    color: #5865F2;
-                    text-decoration: none;
-                }
-                .back-link:hover {
-                    text-decoration: underline;
-                }
-            </style>
-        </head>
-        <body>
-            <h1>Server Configuration for ${targetGuild.name}</h1>
-            <p>This is a placeholder for the server configuration page. In a real implementation, you would see configuration options for the bot in this server.</p>
-            <a href="/profile" class="back-link">← Back to Profile</a>
-        </body>
-        </html>
-    `);
+// API endpoint to get server data
+router.get('/api/server/:serverId', isAuthenticated, async (req, res) => {
+    try {
+        const { serverId } = req.params;
+
+        // Check if user has access to this server
+        const userGuilds = req.user.guilds || [];
+        const targetGuild = userGuilds.find(g => g.id === serverId);
+
+        if (!targetGuild || !targetGuild.isAdmin) {
+            return res.status(403).json({ 
+                error: 'You need to be an admin of this Discord server to access configuration' 
+            });
+        }
+
+        // Get the client ID for generating invite URLs
+        const clientId = process.env.CLIENT_ID || ''; 
+
+        // Create the invite URL
+        const inviteUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&permissions=8&scope=bot%20applications.commands&guild_id=${serverId}`;
+
+        // In a real implementation, you would fetch additional server data from your database
+        // For now, we'll return basic information based on what we have
+        const serverData = {
+            id: targetGuild.id,
+            name: targetGuild.name,
+            icon: targetGuild.icon,
+            botInServer: targetGuild.botInServer,
+            isAdmin: targetGuild.isAdmin,
+            inviteUrl: inviteUrl,
+            clientId: clientId,
+            
+            // Add additional mock data for the UI
+            memberCount: Math.floor(Math.random() * 1000) + 10, // Random member count
+            channelCount: Math.floor(Math.random() * 20) + 1,   // Random channel count
+            commandUsage: Math.floor(Math.random() * 100),      // Random command usage
+            
+            // Mock channel list
+            channels: [
+                { id: 'general-' + serverId, name: 'general' },
+                { id: 'welcome-' + serverId, name: 'welcome' },
+                { id: 'bot-commands-' + serverId, name: 'bot-commands' },
+                { id: 'announcements-' + serverId, name: 'announcements' }
+            ],
+            
+            // Mock configuration (in a real implementation, you would fetch this from a database)
+            config: {
+                prefix: '',
+                notificationChannel: '',
+                autoResponse: false,
+                defaultMap: 'openstreetmap'
+            }
+        };
+
+        // Return the server data
+        res.json(serverData);
+    } catch (error) {
+        console.error('Error fetching server data:', error);
+        res.status(500).json({ error: 'Failed to fetch server data' });
+    }
 });
 
 // API endpoint for server configuration

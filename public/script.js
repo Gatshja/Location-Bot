@@ -67,42 +67,19 @@ function toggleMobileMenu() {
     const navLinks = document.getElementById('mobile-nav');
     navLinks.classList.toggle('active');
 
-    // Add overlay if not exists
-    let overlay = document.querySelector('.mobile-menu-overlay');
-    if (!overlay && navLinks.classList.contains('active')) {
-        overlay = document.createElement('div');
-        overlay.className = 'mobile-menu-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100%';
-        overlay.style.height = '100%';
-        overlay.style.background = 'rgba(0,0,0,0.5)';
-        overlay.style.zIndex = '998';
-        overlay.style.opacity = '0';
-        overlay.style.transition = 'opacity 0.3s ease';
-        
-        overlay.addEventListener('click', toggleMobileMenu);
-        
-        document.body.appendChild(overlay);
-        
-        // Fade in overlay
-        setTimeout(() => {
-            overlay.style.opacity = '1';
-        }, 10);
-    } else if (overlay) {
-        // Fade out and remove overlay
-        overlay.style.opacity = '0';
-        setTimeout(() => {
-            overlay.remove();
-        }, 300);
-    }
-
     // Toggle body scrolling based on menu state
     if (navLinks.classList.contains('active')) {
         document.body.style.overflow = 'hidden'; // Prevent scrolling
+        // Ensure menu is visible
+        navLinks.style.visibility = 'visible';
     } else {
         document.body.style.overflow = ''; // Allow scrolling
+        // Use setTimeout to hide the menu after transition completes
+        setTimeout(() => {
+            if (!navLinks.classList.contains('active')) {
+                navLinks.style.visibility = 'hidden';
+            }
+        }, 300); // Match the transition duration
     }
     
     // Add event listener to close menu button
@@ -123,7 +100,163 @@ document.addEventListener('DOMContentLoaded', function() {
     if (closeMenuBtn) {
         closeMenuBtn.addEventListener('click', toggleMobileMenu);
     }
+    
+    // Check if we're on the profile page
+    const serversContainer = document.getElementById('servers-container');
+    if (serversContainer) {
+        // Fetch and display user's servers
+        loadUserServers();
+    }
 });
+
+// Function to load user's servers on profile page
+async function loadUserServers() {
+    try {
+        const response = await fetch('/api/user');
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch user data');
+        }
+        
+        const userData = await response.json();
+        
+        // Check if user has guilds/servers
+        if (!userData.guilds || !Array.isArray(userData.guilds) || userData.guilds.length === 0) {
+            displayNoServersMessage();
+            return;
+        }
+        
+        // Display servers
+        displayServers(userData.guilds);
+        
+    } catch (error) {
+        console.error('Error loading servers:', error);
+        displayErrorMessage('Failed to load your servers. Please try again later.');
+    }
+}
+
+// Function to display error message in servers container
+function displayErrorMessage(message) {
+    const serversContainer = document.getElementById('servers-container');
+    if (serversContainer) {
+        serversContainer.innerHTML = `
+            <div style="text-align: center; grid-column: 1 / -1; padding: 20px;">
+                <i class="fas fa-exclamation-triangle fa-3x" style="color: #f44336; margin-bottom: 15px;"></i>
+                <p>${message}</p>
+                <button onclick="loadUserServers()" style="margin-top: 15px; padding: 8px 16px; background-color: #5865F2; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    <i class="fas fa-sync-alt"></i> Try Again
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Function to display "no servers" message
+function displayNoServersMessage() {
+    const serversContainer = document.getElementById('servers-container');
+    if (serversContainer) {
+        serversContainer.innerHTML = `
+            <div style="text-align: center; grid-column: 1 / -1; padding: 20px;">
+                <i class="fas fa-server fa-3x" style="color: #999; margin-bottom: 15px;"></i>
+                <p>You don't have any Discord servers yet, or you haven't granted permission to view them.</p>
+            </div>
+        `;
+    }
+}
+
+// Function to display servers
+function displayServers(servers) {
+    const serversContainer = document.getElementById('servers-container');
+    if (!serversContainer) return;
+    
+    // Sort servers - put admin servers first, then sort alphabetically
+    servers.sort((a, b) => {
+        // Sort by admin status first
+        if (a.isAdmin && !b.isAdmin) return -1;
+        if (!a.isAdmin && b.isAdmin) return 1;
+        
+        // Then sort alphabetically
+        return a.name.localeCompare(b.name);
+    });
+    
+    // Clear loading spinner
+    serversContainer.innerHTML = '';
+    
+    // Add server cards
+    servers.forEach(server => {
+        const serverCard = document.createElement('div');
+        serverCard.className = 'server-card';
+        
+        // Determine server icon URL
+        let iconUrl = 'https://cdn.discordapp.com/embed/avatars/0.png'; // Default icon
+        if (server.icon) {
+            iconUrl = `https://cdn.discordapp.com/icons/${server.id}/${server.icon}.png`;
+        }
+        
+        // Create admin badge if user is admin
+        const adminBadge = server.isAdmin ? 
+            '<div class="admin-badge">Admin</div>' : '';
+        
+        // Create bot status badge
+        const botStatusBadge = `
+            <div class="bot-status ${server.botInServer ? 'bot-in-server' : 'bot-not-in-server'}">
+                ${server.botInServer ? 'Bot Added' : 'Bot Not Added'}
+            </div>
+        `;
+        
+        // Create action button
+        let actionButton;
+        if (server.botInServer && server.isAdmin) {
+            // Configure button for servers with bot and admin rights
+            actionButton = `
+                <div class="server-action">
+                    <a href="/server/${server.id}/config" class="btn-server btn-configure">
+                        <i class="fas fa-cog"></i> Configure
+                    </a>
+                </div>
+            `;
+        } else if (!server.botInServer && server.isAdmin) {
+            // Invite button for servers without bot but with admin rights
+            actionButton = `
+                <div class="server-action">
+                    <a href="${server.inviteUrl}" class="btn-server btn-invite">
+                        <i class="fas fa-plus-circle"></i> Add Bot
+                    </a>
+                </div>
+            `;
+        } else {
+            // No action button for servers where user is not admin
+            actionButton = '';
+        }
+        
+        // Set card HTML
+        serverCard.innerHTML = `
+            ${adminBadge}
+            <img src="${iconUrl}" alt="${server.name}" class="server-icon">
+            <h3>${server.name}</h3>
+            ${botStatusBadge}
+            ${actionButton}
+        `;
+        
+        // Add click handler for the entire card (if actions are available)
+        if (server.isAdmin) {
+            serverCard.style.cursor = 'pointer';
+            serverCard.addEventListener('click', (e) => {
+                // Don't trigger if clicking on the action button itself
+                if (e.target.closest('.server-action')) return;
+                
+                // Redirect to appropriate page
+                if (server.botInServer) {
+                    window.location.href = `/server/${server.id}/config`;
+                } else {
+                    window.location.href = server.inviteUrl;
+                }
+            });
+        }
+        
+        serversContainer.appendChild(serverCard);
+    });
+}
 
 function initializeMap() {
     if (mapInitialized) return;
@@ -530,20 +663,36 @@ function showPage(pageId) {
     // Show the requested page
     document.getElementById(pageId).style.display = 'block';
 
-    // Update URL and history
-    let path = '/';
+    // Update active menu item
+    const navLinks = document.querySelectorAll('.nav-links a');
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // Set active class on current page link
+    let currentPath = '';
     if (pageId === 'locationSearch') {
-        path = '/location-search';
+        currentPath = '/location-search';
     } else if (pageId === 'info') {
-        path = '/info';
+        currentPath = '/info';
     } else if (pageId === 'status') {
-        path = '/status';
-
-        // Fetch real-time stats when showing status page
-        fetchStatusData();
+        currentPath = '/status';
+    } else {
+        currentPath = '/';
+    }
+    
+    const activeLink = document.querySelector(`.nav-links a[href="${currentPath}"]`);
+    if (activeLink) {
+        activeLink.classList.add('active');
     }
 
-    history.pushState(null, null, path);
+    // Update URL and history
+    history.pushState(null, null, currentPath);
+
+    // Fetch real-time stats when showing status page
+    if (pageId === 'status') {
+        fetchStatusData();
+    }
 
     // Initialize map if needed
     if (pageId === 'locationSearch' && !window.mapInitialized) {
