@@ -3,11 +3,18 @@ const { Client, GatewayIntentBits, REST, Routes, EmbedBuilder } = require('disco
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const session = require('express-session');
+const passport = require('./auth/discord');
+const { router: authRoutes, isAuthenticated } = require('./routes/auth');
 
 // 🔑 Your Bot Token and API Keys
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID; // Your Discord Bot Client ID
 const LOCATIONIQ_API_KEY = process.env.LOCATIONIQ_API_KEY; // Your LocationIQ API Key
+const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY; // Your Geoapify API Key
+const MAPTOOLKIT_API_KEY = process.env.MAPTOOLKIT_API_KEY; // Your Maptoolkit API Key
+const JOURNEY_API_KEY = process.env.JOURNEY_API_KEY; // Your Journey API Key
+
 
 // Maintenance mode settings
 let maintenanceMode = false;
@@ -44,8 +51,31 @@ const commands = [
                 choices: [
                     { name: 'OpenStreetMap', value: 'openstreetmap' },
                     { name: 'Yandex Map', value: 'yandex' },
+                    { name: 'RoMap', value: 'romap' },
+                    { name: 'Geoapify', value: 'geoapify' },
+                    { name: 'Maptoolkit', value: 'maptoolkit' },
+                    { name: 'Journey', value: 'journey' },
                 ],
             },
+        ],
+    },
+    {
+        name: 'satellite-map',
+        description: 'Get satellite imagery of a location.',
+        options: [
+            {
+                name: 'place',
+                type: 3, // STRING type
+                description: 'Enter the name of the place.',
+                required: true,
+            },
+            {
+                name: 'zoom',
+                type: 4, // INTEGER type
+                description: 'Zoom level (1-19, default is 12)',
+                required: false,
+            },
+
         ],
     },
     {
@@ -100,6 +130,10 @@ const commands = [
                 choices: [
                     { name: 'OpenStreetMap', value: 'openstreetmap' },
                     { name: 'Yandex Map', value: 'yandex' },
+                    { name: 'RoMap', value: 'romap' },
+                    { name: 'Geoapify', value: 'geoapify' },
+                    { name: 'Maptoolkit', value: 'maptoolkit' },
+                    { name: 'Journey', value: 'journey' },
                 ],
             },
         ],
@@ -107,6 +141,10 @@ const commands = [
     {
         name: 'iss',
         description: 'Get the current location of the International Space Station (ISS).',
+    },
+    {
+        name: 'status',
+        description: 'Get current status information about the bot (CPU, memory, uptime).',
     },
     {
         name: 'help',
@@ -304,18 +342,40 @@ client.on('interactionCreate', async (interaction) => {
             const longitude = location.lon;
             const displayName = location.display_name;
 
+            // If LocationIQ failed and mapType was set to locationiq, use an alternative
+            if (mapType === 'locationiq' && !displayName.includes(',')) {
+                console.log('LocationIQ API key may be invalid, defaulting to Geoapify');
+                mapType = 'geoapify';
+            }
+
             // Generate map URL based on selected map type
             let mapUrl;
             let footerText;
 
             switch(mapType) {
                 case 'yandex':
-                    mapUrl = `https://static-maps.yandex.ru/1.x/?ll=${longitude},${latitude}&size=640,360&z=12&l=map&pt=${longitude},${latitude},pm2rdm`;
-                    footerText = '🗺️ Map powered by Yandex Maps';
+                    mapUrl = `https://static-maps.yandex.ru/1.x/?ll=${longitude},${latitude}&size=640,360&z=12&l=map&lang=en-US&pt=${longitude},${latitude},pm2rdm`;
+                    footerText = '🗺️ Map powered by Yandex Maps (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
                     break;
-                default: // openstreetmap
+                case 'romap':
+                    mapUrl = `${process.env.ROMAP_API_URL}/map?lat=${latitude}&lon=${longitude}&zoom=13&width=640&height=360&apikey=${process.env.ROMAP_API_KEY}`;
+                    footerText = '🗺️ Map powered by RoMap (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+                    break;
+                case 'locationiq':
                     mapUrl = `https://maps.locationiq.com/v3/staticmap?key=${LOCATIONIQ_API_KEY}&center=${latitude},${longitude}&zoom=12&size=640x360&markers=icon:large-red-cutout|${latitude},${longitude}&format=png`;
-                    footerText = '🗺️ Map powered by OpenStreetMap/LocationIQ';
+                    footerText = '🗺️ Map powered by LocationIQ (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+                    break;
+                case 'maptoolkit':
+                    mapUrl = `https://maptoolkit.p.rapidapi.com/staticmap/?maptype=terrain&size=640x360&center=${latitude},${longitude}&zoom=12&rapidapi-key=${process.env.MAPTOOLKIT_API_KEY}`;
+                    footerText = '🗺️ Map powered by Maptoolkit (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+                    break;
+                case 'journey':
+                    mapUrl = `https://api.journey.tech/v1/static-map?key=${JOURNEY_API_KEY}&width=640&height=360&lat=${latitude}&lng=${longitude}&zoom=12&scale=2`;
+                    footerText = '🗺️ Map powered by Journey (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+                    break;
+                default: // geoapify
+                    mapUrl = `https://maps.geoapify.com/v1/staticmap?style=osm-carto&width=640&height=360&center=lonlat:${longitude},${latitude}&zoom=12&apiKey=${GEOAPIFY_API_KEY}`;
+                    footerText = '🗺️ Map powered by Geoapify (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
             }
 
             const embed = new EmbedBuilder()
@@ -338,11 +398,36 @@ client.on('interactionCreate', async (interaction) => {
     else if (commandName === 'iss') {
         try {
             await interaction.deferReply();
+            const mapType = interaction.options.getString('map_type') || 'openstreetmap'; // Default map type
 
             const issResponse = await axios.get('http://api.open-notify.org/iss-now.json');
             const { latitude, longitude } = issResponse.data.iss_position;
 
-            const mapUrl = `https://maps.locationiq.com/v3/staticmap?key=${LOCATIONIQ_API_KEY}&center=${latitude},${longitude}&zoom=4&size=640x360&markers=icon:large-red-cutout|${latitude},${longitude}&format=png`;
+            // Generate map URL based on selected map type
+            let mapUrl;
+            let footerText;
+
+            switch(mapType) {
+                case 'romap':
+                    mapUrl = `${process.env.ROMAP_API_URL}/map?lat=${latitude}&lon=${longitude}&zoom=4&width=640&height=360&apikey=${process.env.ROMAP_API_KEY}`;
+                    footerText = '🗺️ Map powered by RoMap (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+                    break;
+                case 'locationiq':
+                    mapUrl = `https://maps.locationiq.com/v3/staticmap?key=${LOCATIONIQ_API_KEY}&center=${latitude},${longitude}&zoom=4&size=640x360&markers=icon:large-red-cutout|${latitude},${longitude}&format=png`;
+                    footerText = '🗺️ Map powered by LocationIQ (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+                    break;
+                case 'maptoolkit':
+                    mapUrl = `https://maptoolkit.p.rapidapi.com/staticmap/?maptype=terrain&size=640x360&center=${latitude},${longitude}&zoom=4&rapidapi-key=${process.env.MAPTOOLKIT_API_KEY}`;
+                    footerText = '🗺️ Map powered by Maptoolkit (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+                    break;
+                case 'journey':
+                    mapUrl = `https://api.journey.tech/v1/static-map?key=${JOURNEY_API_KEY}&width=640&height=360&lat=${latitude}&lng=${longitude}&zoom=4&scale=2`;
+                    footerText = '🗺️ Map powered by Journey (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+                    break;
+                default: // geoapify
+                    mapUrl = `https://maps.geoapify.com/v1/staticmap?style=osm-carto&width=640&height=360&center=lonlat:${longitude},${latitude}&zoom=4&apiKey=${GEOAPIFY_API_KEY}`;
+                    footerText = '🗺️ Map powered by Geoapify (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+            }
 
             const embed = new EmbedBuilder()
                 .setTitle('🛰️ International Space Station Location')
@@ -350,7 +435,7 @@ client.on('interactionCreate', async (interaction) => {
                     { name: '🧭 **Coordinates:**', value: `Latitude: ${latitude}, Longitude: ${longitude}` }
                 )
                 .setImage(mapUrl)
-                .setFooter({ text: '🗺️ Map powered by LocationIQ' });
+                .setFooter({ text: footerText });
 
             await interaction.editReply({ embeds: [embed] });
         } catch (error) {
@@ -366,9 +451,11 @@ client.on('interactionCreate', async (interaction) => {
             .setDescription('Here are the available commands:')
             .addFields(
                 { name: '/location', value: 'Get location details of a specific place.' },
+                { name: '/satellite-map', value: 'Get satellite imagery of a location with customizable zoom level.' },
                 { name: '/customlocation', value: 'Get location details using specific latitude and longitude coordinates.' },
                 { name: '/iss', value: 'Get the current location of the ISS.' },
                 { name: '/game', value: 'Play a location guessing game! Choose from World Landmarks, Capital Cities, or Random Locations.' },
+                { name: '/status', value: 'Get current status information about the bot (CPU, memory, uptime).' },
                 { name: '/info', value: 'Get information about the bot.' }
             )
             .setFooter({ text: '🗺️ Location Bot by Robloxbot Inc, Software Developers' });
@@ -383,11 +470,136 @@ client.on('interactionCreate', async (interaction) => {
             .setDescription('A Location Bot powered by APIs. Explore locations and ISS positions on Discord.')
             .addFields(
                 { name: 'Owner', value: 'Robloxbot Inc, Software Developers' },
-                { name: 'API', value: 'Powered by LocationIQ' }
+                { name: 'API', value: 'Powered by LocationIQ, Yandex Maps, and RoMap' }
             )
             .setFooter({ text: '🗺️ Explore the world with LocationIQ Maps!' });
 
         await interaction.reply({ embeds: [embed] });
+    }
+
+    // 🛰️ /satellite-map Command
+    else if (commandName === 'satellite-map') {
+        const place = interaction.options.getString('place');
+        const zoom = interaction.options.getInteger('zoom') || 12; // Default zoom level
+
+        try {
+            await interaction.deferReply();
+
+            // Get coordinates from the place name
+            const response = await axios.get(
+                `https://us1.locationiq.com/v1/search?key=${LOCATIONIQ_API_KEY}&q=${place}&format=json`
+            );
+
+            const location = response.data[0];
+            const latitude = location.lat;
+            const longitude = location.lon;
+            const displayName = location.display_name;
+
+            // Validate zoom level (1-19)
+            const validZoom = Math.min(Math.max(zoom, 1), 19);
+
+            // Use Yandex satellite map
+            const mapUrl = `https://static-maps.yandex.ru/1.x/?ll=${longitude},${latitude}&size=640,360&z=${validZoom}&l=sat&lang=en-US&pt=${longitude},${latitude},pm2rdm`;
+            const footerText = '🛰️ Satellite imagery powered by Yandex Maps (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify)';
+
+            const embed = new EmbedBuilder()
+                .setTitle('🛰️ Satellite View')
+                .addFields(
+                    { name: '📍 **Location:**', value: displayName },
+                    { name: '🧭 **Coordinates:**', value: `Latitude: ${latitude}, Longitude: ${longitude}` },
+                    { name: '🔍 **Zoom Level:**', value: `${validZoom}` }
+                )
+                .setImage(mapUrl)
+                .setFooter({ text: footerText });
+
+            await interaction.editReply({ embeds: [embed] });
+        } catch (error) {
+            console.error('❌ Error fetching satellite data:', error);
+            await interaction.editReply('Failed to fetch satellite imagery. Please try again later or check the location name.');
+        }
+    }
+
+    // 📊 /status Command
+    else if (commandName === 'status') {
+        try {
+            await interaction.deferReply();
+
+            // Get CPU usage (process and system)
+            const os = require('os');
+            const startUsage = process.cpuUsage();
+            const startTime = process.hrtime();
+
+            // Do a busy-work to measure CPU
+            for (let i = 0; i < 1000000; i++) {}
+
+            const elapTime = process.hrtime(startTime);
+            const elapUsage = process.cpuUsage(startUsage);
+            const elapTimeMS = elapTime[0] * 1000 + elapTime[1] / 1000000;
+            const cpuPercent = Math.round((100 * (elapUsage.user + elapUsage.system) / 1000) / elapTimeMS);
+
+            // Calculate system CPU load average
+            const cpuLoad = os.loadavg()[0].toFixed(2);
+
+            // Get memory usage
+            const usedMemory = process.memoryUsage();
+            const heapUsed = Math.round(usedMemory.heapUsed / 1024 / 1024 * 100) / 100;
+            const heapTotal = Math.round(usedMemory.heapTotal / 1024 / 1024 * 100) / 100;
+            const rssMemory = Math.round(usedMemory.rss / 1024 / 1024 * 100) / 100;
+
+            // System memory info
+            const totalMem = Math.round(os.totalmem() / 1024 / 1024 / 1024 * 100) / 100;
+            const freeMem = Math.round(os.freemem() / 1024 / 1024 / 1024 * 100) / 100;
+            const usedMem = totalMem - freeMem;
+            const memoryPercentage = Math.round((usedMem / totalMem) * 100);
+
+            // Get uptime
+            const uptimeSeconds = process.uptime();
+            const days = Math.floor(uptimeSeconds / 86400);
+            const hours = Math.floor((uptimeSeconds % 86400) / 3600);
+            const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+            const seconds = Math.floor(uptimeSeconds % 60);
+
+            const uptimeFormatted = 
+                (days > 0 ? `${days} days, ` : '') + 
+                (hours > 0 ? `${hours} hours, ` : '') + 
+                (minutes > 0 ? `${minutes} minutes, ` : '') + 
+                `${seconds} seconds`;
+
+            // Create embed with the information
+            const embed = new EmbedBuilder()
+                .setTitle('📊 Bot Status')
+                .setDescription('Current system performance metrics')
+                .addFields(
+                    { 
+                        name: '⏱️ Uptime', 
+                        value: uptimeFormatted,
+                        inline: false
+                    },
+                    { 
+                        name: '🔄 CPU Usage', 
+                        value: `Process: ${cpuPercent}%\nSystem Load: ${cpuLoad}`,
+                        inline: true 
+                    },
+                    { 
+                        name: '💾 Memory Usage', 
+                        value: `Process: ${rssMemory} MB\nHeap: ${heapUsed}/${heapTotal} MB\nSystem: ${usedMem.toFixed(2)}/${totalMem} GB (${memoryPercentage}%)`,
+                        inline: true 
+                    },
+                    {
+                        name: '🖥️ System Info',
+                        value: `Platform: ${os.platform()} ${os.release()}\nCPU: ${os.cpus()[0].model}\nCores: ${os.cpus().length}`,
+                        inline: false
+                    }
+                )
+                .setFooter({ text: `Requested at ${new Date().toISOString()}` })
+                .setColor('#00BFFF');
+
+            await interaction.editReply({ embeds: [embed] });
+
+        } catch (error) {
+            console.error('❌ Error in status command:', error);
+            await interaction.editReply('Failed to retrieve status information. Please try again later.');
+        }
     }
 
     // 🎮 /game Command 
@@ -558,18 +770,40 @@ client.on('interactionCreate', async (interaction) => {
 
             const displayName = response.data.display_name || 'Unknown Location';
 
+            // If LocationIQ failed and mapType was set to locationiq, use an alternative
+            if (mapType === 'locationiq' && !displayName.includes(',')) {
+                console.log('LocationIQ API key may be invalid, defaulting to Geoapify');
+                mapType = 'geoapify';
+            }
+
             // Generate map URL based on selected map type
             let mapUrl;
             let footerText;
 
             switch(mapType) {
                 case 'yandex':
-                    mapUrl = `https://static-maps.yandex.ru/1.x/?ll=${lng},${lat}&size=640,360&z=12&l=map&pt=${lng},${lat},pm2rdm`;
-                    footerText = '🗺️ Map powered by Yandex Maps';
+                    mapUrl = `https://static-maps.yandex.ru/1.x/?ll=${lng},${lat}&size=640,360&z=12&l=map&lang=en-US&pt=${lng},${lat},pm2rdm`;
+                    footerText = '🗺️ Map poweredby Yandex Maps (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
                     break;
-                default: // openstreetmap
+                case 'romap':
+                    mapUrl = `${process.env.ROMAP_API_URL}/map?lat=${lat}&lon=${lng}&zoom=13&width=640&height=360&apikey=${process.env.ROMAP_API_KEY}`;
+                    footerText = '🗺️ Map powered by RoMap (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+                    break;
+                case 'locationiq':
                     mapUrl = `https://maps.locationiq.com/v3/staticmap?key=${LOCATIONIQ_API_KEY}&center=${lat},${lng}&zoom=12&size=640x360&markers=icon:large-red-cutout|${lat},${lng}&format=png`;
-                    footerText = '🗺️ Map powered by OpenStreetMap/LocationIQ';
+                    footerText = '🗺️ Map powered by LocationIQ (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+                    break;
+                case 'maptoolkit':
+                    mapUrl = `https://maptoolkit.p.rapidapi.com/staticmap/?maptype=terrain&size=640x360&center=${lat},${lng}&zoom=12&rapidapi-key=${process.env.MAPTOOLKIT_API_KEY}`;
+                    footerText = '🗺️ Map powered by Maptoolkit (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+                    break;
+                case 'journey':
+                    mapUrl = `https://api.journey.tech/v1/static-map?key=${JOURNEY_API_KEY}&width=640&height=360&lat=${lat}&lng=${lng}&zoom=12&scale=2`;
+                    footerText = '🗺️ Map powered by Journey (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
+                    break;
+                default: // geoapify
+                    mapUrl = `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=640&height=360&center=lonlat:${lng},${lat}&zoom=12&apiKey=${GEOAPIFY_API_KEY}`;
+                    footerText = '🗺️ Map powered by Geoapify (APIs: LocationIQ, OpenStreetMap, Yandex, RoMap, Geoapify, Maptoolkit, Journey)';
             }
 
             const embed = new EmbedBuilder()
@@ -591,25 +825,47 @@ client.on('interactionCreate', async (interaction) => {
 
 const express = require('express')
 const app = express();
-const port = 8080
+const port = 6484
 
 // Serve static files after route handlers
+// Configure session
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'keyboard cat',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 604800000 // 7 days
+    }
+}));
+
+// Initialize passport
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Middleware to check maintenance mode
 app.use((req, res, next) => {
     // Skip the maintenance check for API requests and the maintenance page itself
     if (req.path.startsWith('/api/') || req.path === '/maintenance.html') {
         return next();
     }
-    
+
     // If in maintenance mode, redirect to maintenance page
     if (maintenanceMode && req.path !== '/admin') {
         return res.sendFile(path.join(__dirname, './public/maintenance.html'));
     }
-    
+
     next();
 });
 
+// Setup view engine for templates
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'public'));
+
 app.use(express.static(path.join(__dirname, './public')));
+
+// Register auth routes
+app.use(authRoutes);
 
 // API endpoint to provide LocationIQ key to frontend
 app.get('/api/config', (req, res) => {
@@ -754,25 +1010,25 @@ app.post('/api/logs', express.json(), (req, res) => {
     if (req.body.adminPassword !== 'adminaccess') {
         return res.status(403).json({ error: 'Unauthorized' });
     }
-    
+
     try {
         // Get requested date or use today
         const requestedDate = req.body.date || new Date().toISOString().split('T')[0];
         const logType = req.body.type || 'all';
-        
+
         // Construct log file path
         const logFile = path.join(logsDir, `command-usage-${requestedDate}.log`);
-        
+
         // Check if log file exists
         if (!fs.existsSync(logFile)) {
             return res.json([]);
         }
-        
+
         // Read and parse log file
         const logContents = fs.readFileSync(logFile, 'utf8');
         const logLines = logContents.trim().split('\n');
         const logEntries = logLines.map(line => JSON.parse(line));
-        
+
         // Filter logs by type if specified
         let filteredLogs = logEntries;
         if (logType !== 'all') {
@@ -789,7 +1045,7 @@ app.post('/api/logs', express.json(), (req, res) => {
                 return true;
             });
         }
-        
+
         // Return filtered logs
         res.json(filteredLogs);
     } catch (error) {
@@ -804,56 +1060,57 @@ app.post('/api/user-analytics', express.json(), (req, res) => {
     if (req.body.adminPassword !== 'adminaccess') {
         return res.status(403).json({ error: 'Unauthorized' });
     }
-    
+
     try {
         // Get all log files
         const logFiles = fs.readdirSync(logsDir).filter(file => file.startsWith('command-usage-'));
-        
+
         // Load and parse all logs
         let allLogs = [];
         logFiles.forEach(file => {
+
             const logPath = path.join(logsDir, file);
             const logContents = fs.readFileSync(logPath, 'utf8');
             const logLines = logContents.trim().split('\n');
             allLogs = allLogs.concat(logLines.map(line => JSON.parse(line)));
         });
-        
+
         // Calculate unique users
         const uniqueUsers = new Set();
         const userCommandCounts = {};
         const userFavoriteCommands = {};
         const userServers = {};
-        
+
         allLogs.forEach(log => {
             const userId = log.userId;
             uniqueUsers.add(userId);
-            
+
             // Count commands per user
             userCommandCounts[userId] = (userCommandCounts[userId] || 0) + 1;
-            
+
             // Track favorite commands
             if (!userFavoriteCommands[userId]) {
                 userFavoriteCommands[userId] = {};
             }
             userFavoriteCommands[userId][log.commandName] = (userFavoriteCommands[userId][log.commandName] || 0) + 1;
-            
+
             // Track servers per user
             if (!userServers[userId]) {
                 userServers[userId] = new Set();
             }
             userServers[userId].add(log.guildId);
         });
-        
+
         // Calculate average commands per user
         const avgCommands = uniqueUsers.size > 0 
             ? (allLogs.length / uniqueUsers.size).toFixed(1)
             : 0;
-        
+
         // Calculate user engagement levels
         const powerUsers = Object.values(userCommandCounts).filter(count => count >= 10).length;
         const casualUsers = Object.values(userCommandCounts).filter(count => count >= 2 && count < 10).length;
         const oneTimeUsers = Object.values(userCommandCounts).filter(count => count === 1).length;
-        
+
         // Get new users today
         const today = new Date().toISOString().split('T')[0];
         const todayLogs = allLogs.filter(log => {
@@ -867,35 +1124,35 @@ app.post('/api/user-analytics', express.json(), (req, res) => {
             const earliestLog = userLogs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))[0];
             return new Date(earliestLog.timestamp).toISOString().split('T')[0] === today;
         }).length;
-        
+
         // Command distribution
         const commandCounts = {};
         allLogs.forEach(log => {
             commandCounts[log.commandName] = (commandCounts[log.commandName] || 0) + 1;
         });
-        
+
         // Prepare top users data
         const topUsers = Object.entries(userCommandCounts)
             .map(([userId, commandCount]) => {
                 // Find the username associated with this user ID
                 const userLogs = allLogs.filter(log => log.userId === userId);
                 const username = userLogs.length > 0 ? userLogs[0].username : 'Unknown User';
-                
+
                 // Find favorite command
                 const commands = userFavoriteCommands[userId] || {};
                 let favoriteCommand = 'none';
                 let maxCount = 0;
-                
+
                 Object.entries(commands).forEach(([cmd, count]) => {
                     if (count > maxCount) {
                         favoriteCommand = cmd;
                         maxCount = count;
                     }
                 });
-                
+
                 // Count servers
                 const serverCount = userServers[userId] ? userServers[userId].size : 0;
-                
+
                 return {
                     userId,
                     username,
@@ -910,7 +1167,7 @@ app.post('/api/user-analytics', express.json(), (req, res) => {
                 ...user,
                 rank: index + 1
             }));
-        
+
         // Calculate activity data (past 7 days)
         const activityData = {
             labels: [],
@@ -919,7 +1176,7 @@ app.post('/api/user-analytics', express.json(), (req, res) => {
                 data: []
             }]
         };
-        
+
         // Get dates for the past 7 days
         const dates = [];
         for (let i = 6; i >= 0; i--) {
@@ -927,21 +1184,21 @@ app.post('/api/user-analytics', express.json(), (req, res) => {
             date.setDate(date.getDate() - i);
             const formattedDate = date.toISOString().split('T')[0];
             dates.push(formattedDate);
-            
+
             // Add to labels (shorter format for display)
             const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             activityData.labels.push(dayNames[date.getDay()]);
-            
+
             // Count active users for this day
             const activeDayUsers = new Set(
                 allLogs
                     .filter(log => new Date(log.timestamp).toISOString().split('T')[0] === formattedDate)
                     .map(log => log.userId)
             );
-            
+
             activityData.datasets[0].data.push(activeDayUsers.size);
         }
-        
+
         // Return the analytics data
         res.json({
             uniqueUsers: uniqueUsers.size,
@@ -971,13 +1228,13 @@ app.post('/api/refresh-commands', express.json(), async (req, res) => {
     if (req.body.adminPassword !== 'adminaccess') {
         return res.status(403).json({ error: 'Unauthorized' });
     }
-    
+
     try {
         await registerCommands();
-        
+
         // Get current command count
         const registeredCommands = client.application.commands.cache.size;
-        
+
         res.json({
             success: true,
             message: `Successfully refreshed ${registeredCommands} commands`,
@@ -1092,7 +1349,7 @@ async function getGameData(gameType, difficulty) {
                         hint: "An ancient fortification built to protect Chinese states from nomadic groups.",
                         difficulty: "easy"
                     },
-                    
+
                     // Medium landmarks
                     {
                         locationName: "Machu Picchu",
@@ -1129,7 +1386,7 @@ async function getGameData(gameType, difficulty) {
                         hint: "A complex of Mayan ruins on Mexico's Yucatán Peninsula with a step pyramid known as El Castillo.",
                         difficulty: "medium"
                     },
-                    
+
                     // Hard landmarks
                     {
                         locationName: "Angkor Wat",
@@ -1207,7 +1464,7 @@ async function getGameData(gameType, difficulty) {
                         hint: "Home to the Forbidden City and the Great Wall of China nearby.",
                         difficulty: "easy"
                     },
-                    
+
                     // Medium capitals
                     {
                         locationName: "Tokyo",
@@ -1244,7 +1501,7 @@ async function getGameData(gameType, difficulty) {
                         hint: "Located near the ancient pyramids of Giza.",
                         difficulty: "medium"
                     },
-                    
+
                     // Hard capitals
                     {
                         locationName: "Canberra",
@@ -1322,7 +1579,7 @@ async function getGameData(gameType, difficulty) {
                         hint: "The world's largest coral reef system composed of over 2,900 individual reefs.",
                         difficulty: "easy"
                     },
-                    
+
                     // Medium random locations
                     {
                         locationName: "Santorini",
@@ -1359,14 +1616,13 @@ async function getGameData(gameType, difficulty) {
                         hint: "A national park known for its soaring mountains, bright blue icebergs, and golden pampas.",
                         difficulty: "medium"
                     },
-                    
+
                     // Hard random locations
                     {
                         locationName: "Lake Baikal",
                         country: "Russia",
                         imageUrl: "https://images.unsplash.com/photo-1551845041-63e8e76836ea?w=800&auto=format&fit=crop",
-                        hint: "The world's deepest and oldest freshwater lake.",
-                        difficulty: "hard"
+                        hint: "The world's deepest and oldest freshwater lake.",difficulty: "hard"
                     },
                     {
                         locationName: "Plitvice Lakes",

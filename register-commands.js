@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 const { REST, Routes } = require('discord.js');
 
@@ -24,10 +23,32 @@ const commands = [
                 description: 'Choose map provider',
                 required: false,
                 choices: [
-                    { name: 'OpenStreetMap', value: 'openstreetmap' },
+                    { name: 'Geoapify', value: 'geoapify' },
+                    { name: 'LocationIQ', value: 'locationiq' },
                     { name: 'Yandex Map', value: 'yandex' },
+                    { name: 'RoMap', value: 'romap' },
+                    { name: 'Maptoolkit', value: 'maptoolkit' },
+                    { name: 'Journey', value: 'journey' },
                 ],
             },
+        ],
+    },
+    {
+        name: 'satellite-map',
+        description: 'Get satellite imagery of a location.',
+        options: [
+            {
+                name: 'place',
+                type: 3, // STRING type
+                description: 'Enter the name of the place.',
+                required: true,
+            },
+            {
+                name: 'zoom',
+                type: 4, // INTEGER type
+                description: 'Zoom level (1-19, default is 12)',
+                required: false,
+            }
         ],
     },
     {
@@ -80,8 +101,12 @@ const commands = [
                 description: 'Choose map provider',
                 required: false,
                 choices: [
-                    { name: 'OpenStreetMap', value: 'openstreetmap' },
+                    { name: 'Geoapify', value: 'geoapify' },
+                    { name: 'LocationIQ', value: 'locationiq' },
                     { name: 'Yandex Map', value: 'yandex' },
+                    { name: 'RoMap', value: 'romap' },
+                    { name: 'Maptoolkit', value: 'maptoolkit' },
+                    { name: 'Journey', value: 'journey' },
                 ],
             },
         ],
@@ -89,6 +114,24 @@ const commands = [
     {
         name: 'iss',
         description: 'Get the current location of the International Space Station (ISS).',
+        options: [
+            {
+                name: 'map_type',
+                type: 3, // STRING type
+                description: 'Choose map provider',
+                required: false,
+                choices: [
+                    { name: 'Geoapify', value: 'geoapify' },
+                    { name: 'LocationIQ', value: 'locationiq' },
+                    { name: 'RoMap', value: 'romap' },
+                    { name: 'Journey', value: 'journey' },
+                ],
+            },
+        ],
+    },
+    {
+        name: 'status',
+        description: 'Get current status information about the bot (CPU, memory, uptime).',
     },
     {
         name: 'help',
@@ -107,13 +150,13 @@ const rest = new REST({ version: '10' }).setToken(DISCORD_BOT_TOKEN);
 async function registerCommands() {
     try {
         console.log('🔄 Started refreshing application (/) commands...');
-        
+
         // The put method is used to fully refresh all commands
         const data = await rest.put(
             Routes.applicationCommands(CLIENT_ID),
             { body: commands },
         );
-        
+
         console.log(`✅ Successfully reloaded ${data.length} application (/) commands!`);
         console.log('📜 Registered commands:');
         data.forEach((cmd, index) => {
