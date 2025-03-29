@@ -15,6 +15,155 @@
             color: #333;
         }
         
+        /* Broadcast Styles */
+        .broadcast-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .broadcast-form {
+            margin-top: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .broadcast-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .broadcast-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 16px;
+            resize: vertical;
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        
+        .radio-group input {
+            margin-right: 8px;
+        }
+        
+        .broadcast-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            min-height: 100px;
+        }
+        
+        .preview-placeholder {
+            color: #999;
+            font-style: italic;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        
+        .preview-embed {
+            border-left: 4px solid #4287f5;
+            background-color: #ffffff;
+            padding: 8px 12px;
+            max-width: 520px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .preview-embed-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 8px;
+        }
+        
+        .preview-embed-content {
+            font-size: 1em;
+            color: #333;
+        }
+        
+        .broadcast-history {
+            margin-top: 30px;
+        }
+        
+        .broadcast-history table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .broadcast-history th, 
+        .broadcast-history td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .broadcast-history th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        
+        .broadcast-history tr:hover {
+            background-color: #f5f5f5;
+        }
+        
         /* Maintenance Mode Styles */
         .maintenance-card {
             background-color: white;
@@ -752,6 +901,7 @@
                         <li><a href="#dashboard">Dashboard</a></li>
                         <li><a href="#commands">Command Logs</a></li>
                         <li><a href="#users">User Analytics</a></li>
+                        <li><a href="#broadcast">Broadcast</a></li>
                         <li><a href="#maintenance">Maintenance Mode</a></li>
                         <li><a href="#logs">System Logs</a></li>
                     </ul>
@@ -868,6 +1018,224 @@
                         </div>
                         
                         <script>
+                        // Broadcast functionality
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const messageFormatRadios = document.querySelectorAll('input[name="message-format"]');
+                            const embedColorContainer = document.getElementById('embed-color-container');
+                            const previewButton = document.getElementById('preview-broadcast');
+                            const sendButton = document.getElementById('send-broadcast');
+                            
+                            // Toggle embed color picker based on message format selection
+                            messageFormatRadios.forEach(radio => {
+                                radio.addEventListener('change', function() {
+                                    if (this.value === 'embed') {
+                                        embedColorContainer.style.display = 'block';
+                                    } else {
+                                        embedColorContainer.style.display = 'none';
+                                    }
+                                });
+                            });
+                            
+                            // Generate preview
+                            if (previewButton) {
+                                previewButton.addEventListener('click', generateBroadcastPreview);
+                            }
+                            
+                            // Send broadcast
+                            if (sendButton) {
+                                sendButton.addEventListener('click', sendBroadcast);
+                            }
+                            
+                            // Load broadcast history
+                            loadBroadcastHistory();
+                        });
+                        
+                        function generateBroadcastPreview() {
+                            const title = document.getElementById('broadcast-title').value || 'Announcement';
+                            const message = document.getElementById('broadcast-message').value || 'No message content provided.';
+                            const format = document.querySelector('input[name="message-format"]:checked').value;
+                            const embedColor = document.getElementById('embed-color').value;
+                            
+                            const previewContainer = document.getElementById('broadcast-preview');
+                            
+                            if (format === 'text') {
+                                previewContainer.innerHTML = `
+                                    <div class="preview-text">
+                                        <strong>${escapeHtml(title)}</strong><br><br>
+                                        ${formatMessageContent(message)}
+                                    </div>
+                                `;
+                            } else { // embed
+                                previewContainer.innerHTML = `
+                                    <div class="preview-embed" style="border-left-color: ${embedColor}">
+                                        <div class="preview-embed-title">${escapeHtml(title)}</div>
+                                        <div class="preview-embed-content">${formatMessageContent(message)}</div>
+                                    </div>
+                                `;
+                            }
+                        }
+                        
+                        async function sendBroadcast() {
+                            const statusElem = document.getElementById('broadcast-status');
+                            statusElem.textContent = '⏳ Sending broadcast message...';
+                            statusElem.className = 'status-message status-pending';
+                            
+                            const title = document.getElementById('broadcast-title').value;
+                            const message = document.getElementById('broadcast-message').value;
+                            const format = document.querySelector('input[name="message-format"]:checked').value;
+                            const embedColor = document.getElementById('embed-color').value;
+                            const target = document.querySelector('input[name="target-servers"]:checked').value;
+                            
+                            if (!title || !message) {
+                                statusElem.textContent = '❌ Error: Title and message are required';
+                                statusElem.className = 'status-message status-error';
+                                return;
+                            }
+                            
+                            try {
+                                const response = await fetch('/api/broadcast', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        adminPassword: sessionStorage.getItem('adminPassword') || 'adminaccess',
+                                        title: title,
+                                        message: message,
+                                        format: format,
+                                        color: embedColor.replace('#', ''),
+                                        target: target
+                                    })
+                                });
+                                
+                                // Check if response is OK before parsing JSON
+                                if (!response.ok) {
+                                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                                }
+                                
+                                const contentType = response.headers.get('content-type');
+                                if (!contentType || !contentType.includes('application/json')) {
+                                    throw new Error('Server returned non-JSON response');
+                                }
+                                
+                                const data = await response.json();
+                                
+                                if (data.success) {
+                                    statusElem.textContent = `✅ Successfully sent to ${data.serversReached} servers`;
+                                    statusElem.className = 'status-message status-success';
+                                    
+                                    // Add to broadcast history
+                                    addBroadcastHistoryEntry({
+                                        date: new Date().toISOString(),
+                                        title: title,
+                                        format: format,
+                                        target: target,
+                                        successRate: `${data.serversReached}/${data.totalServers} (${Math.round((data.serversReached / data.totalServers) * 100)}%)`
+                                    });
+                                    
+                                    // Clear the form
+                                    setTimeout(() => {
+                                        document.getElementById('broadcast-title').value = '';
+                                        document.getElementById('broadcast-message').value = '';
+                                        document.getElementById('broadcast-preview').innerHTML = '<div class="preview-placeholder">Your announcement preview will appear here.</div>';
+                                    }, 3000);
+                                    
+                                } else {
+                                    throw new Error(data.error || 'Failed to send broadcast');
+                                }
+                            } catch (error) {
+                                console.error('Error sending broadcast:', error);
+                                statusElem.textContent = `❌ Error: ${error.message}`;
+                                statusElem.className = 'status-message status-error';
+                            }
+                        }
+                        
+                        function loadBroadcastHistory() {
+                            const historyTable = document.getElementById('broadcast-history-table').getElementsByTagName('tbody')[0];
+                            
+                            // First try to load from localStorage
+                            const storedHistory = localStorage.getItem('broadcastHistory');
+                            if (storedHistory) {
+                                const history = JSON.parse(storedHistory);
+                                history.forEach(entry => {
+                                    addBroadcastHistoryEntry(entry, false);
+                                });
+                            } else {
+                                // If no history, show empty state
+                                historyTable.innerHTML = `
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; padding: 20px; color: #777;">
+                                            No broadcast history yet. Send your first announcement to see it here.
+                                        </td>
+                                    </tr>
+                                `;
+                            }
+                        }
+                        
+                        function addBroadcastHistoryEntry(entry, saveToStorage = true) {
+                            const historyTable = document.getElementById('broadcast-history-table').getElementsByTagName('tbody')[0];
+                            
+                            // If this is the first entry, clear the empty state
+                            if (historyTable.querySelector('td[colspan="5"]')) {
+                                historyTable.innerHTML = '';
+                            }
+                            
+                            // Format date for display
+                            const date = new Date(entry.date);
+                            const formattedDate = date.toLocaleString();
+                            
+                            // Create new row at the beginning
+                            const newRow = historyTable.insertRow(0);
+                            newRow.innerHTML = `
+                                <td>${formattedDate}</td>
+                                <td>${escapeHtml(entry.title)}</td>
+                                <td>${entry.format === 'embed' ? 'Rich Embed' : 'Plain Text'}</td>
+                                <td>${entry.target === 'all' ? 'All Servers' : 'Large Servers'}</td>
+                                <td>${entry.successRate || 'N/A'}</td>
+                            `;
+                            
+                            if (saveToStorage) {
+                                // Update the storage
+                                const history = JSON.parse(localStorage.getItem('broadcastHistory') || '[]');
+                                history.unshift(entry);
+                                
+                                // Limit to 20 entries
+                                if (history.length > 20) {
+                                    history.pop();
+                                }
+                                
+                                localStorage.setItem('broadcastHistory', JSON.stringify(history));
+                            }
+                        }
+                        
+                        // Helper functions
+                        function escapeHtml(text) {
+                            const div = document.createElement('div');
+                            div.textContent = text;
+                            return div.innerHTML;
+                        }
+                        
+                        function formatMessageContent(text) {
+                            // Very simple Markdown-like formatting
+                            // Replace newlines with <br>
+                            let formatted = text.replace(/\n/g, '<br>');
+                            
+                            // Bold text
+                            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                            
+                            // Italic text
+                            formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                            
+                            // Code blocks
+                            formatted = formatted.replace(/```(.*?)```/gs, '<pre><code>$1</code></pre>');
+                            
+                            // Inline code
+                            formatted = formatted.replace(/`(.*?)`/g, '<code>$1</code>');
+                            
+                            return formatted;
+                        }
+                            
                             // Load user analytics data
                             async function loadUserAnalytics() {
                                 try {
@@ -1082,6 +1450,87 @@
                                     </thead>
                                     <tbody>
                                         <!-- This will be populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="broadcast-section" style="display: none;">
+                        <h2>Broadcast Messages</h2>
+                        <div class="broadcast-card">
+                            <h3>Send Announcement to All Servers</h3>
+                            <p>Use this feature to send important announcements to all servers where the bot is active. Messages will be sent to the default or system channel in each server.</p>
+                            
+                            <div class="broadcast-form">
+                                <div class="form-group">
+                                    <label for="broadcast-title">Announcement Title:</label>
+                                    <input type="text" id="broadcast-title" placeholder="e.g., Important Update, New Feature, Maintenance" class="broadcast-input">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="broadcast-message">Announcement Message:</label>
+                                    <textarea id="broadcast-message" rows="5" placeholder="Enter your announcement message here. Markdown formatting is supported." class="broadcast-textarea"></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Message Format:</label>
+                                    <div class="radio-group">
+                                        <label>
+                                            <input type="radio" name="message-format" value="text" checked> Plain Text
+                                        </label>
+                                        <label>
+                                            <input type="radio" name="message-format" value="embed"> Rich Embed
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group" id="embed-color-container" style="display: none;">
+                                    <label for="embed-color">Embed Color:</label>
+                                    <input type="color" id="embed-color" value="#4287f5">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Target Servers:</label>
+                                    <div class="radio-group">
+                                        <label>
+                                            <input type="radio" name="target-servers" value="all" checked> All Servers
+                                        </label>
+                                        <label>
+                                            <input type="radio" name="target-servers" value="large"> Large Servers (100+ members)
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="broadcast-preview">Preview:</label>
+                                    <div id="broadcast-preview" class="broadcast-preview">
+                                        <div class="preview-placeholder">Your announcement preview will appear here.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="button-group">
+                                    <button id="preview-broadcast" class="btn-secondary">Generate Preview</button>
+                                    <button id="send-broadcast" class="btn-danger">Send Announcement</button>
+                                </div>
+                                
+                                <div id="broadcast-status" class="status-message"></div>
+                            </div>
+                            
+                            <div class="broadcast-history">
+                                <h3>Recent Broadcasts</h3>
+                                <table id="broadcast-history-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Title</th>
+                                            <th>Format</th>
+                                            <th>Target</th>
+                                            <th>Delivery Rate</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Broadcast history will be populated here -->
                                     </tbody>
                                 </table>
                             </div>
@@ -1375,6 +1824,7 @@
             document.getElementById('dashboard-section').style.display = 'none';
             document.getElementById('commands-section').style.display = 'none';
             document.getElementById('users-section').style.display = 'none';
+            document.getElementById('broadcast-section').style.display = 'none';
             document.getElementById('maintenance-section').style.display = 'none';
             document.getElementById('logs-section').style.display = 'none';
             

@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Discord OAuth</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+            color: #2c2c2c;
+            line-height: 1.6;
+        }
+        
+        /* Navbar Styles */
+        .navbar {
+            background: #5865F2;
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            color: white;
+            font-size: 24px;
+            text-decoration: none;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-links li {
+            margin: 0 5px;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            display: block;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        /* Mobile Menu Styles */
+        .mobile-menu-icon {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            z-index: 1000;
+        }
+
+        .bar {
+            width: 25px;
+            height: 3px;
+            background-color: white;
+            margin: 3px 0;
+            transition: 0.4s;
+        }
+
+        .close-menu {
+            display: none;
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 28px;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .mobile-menu-icon {
+                display: flex;
+            }
+
+            .close-menu {
+                display: block;
+            }
+
+            .nav-links {
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 280px;
+                height: 100%;
+                background: #5865F2;
+                flex-direction: column;
+                padding: 70px 0 20px;
+                z-index: 999;
+                transition: right 0.3s ease;
+                box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+            }
+
+            .nav-links.active {
+                right: 0;
+            }
+
+            .nav-links a {
+                padding: 15px 25px;
+                width: 100%;
+                text-align: left;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            color: #5865F2;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1.1rem;
+        }
+
+        .profile-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin-right: 1.5rem;
+            object-fit: cover;
+        }
+
+        .profile-info h2 {
+            margin: 0 0 0.5rem 0;
+        }
+
+        .tag {
+            color: #888;
+            font-size: 1.1rem;
+        }
+
+        .profile-details {
+            margin-top: 1.5rem;
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 0.75rem;
+        }
+
+        .detail-label {
+            flex: 0 0 150px;
+            font-weight: 500;
+            color: #5865F2;
+        }
+
+        .server-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .filter-btn {
+            padding: 6px 14px;
+            background-color: #e7e7e7;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .filter-btn.active {
+            background-color: #5865F2;
+            color: white;
+        }
+
+        .servers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .server-card {
+            position: relative;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .server-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .server-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-bottom: 0.5rem;
+        }
+
+        .admin-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #5865F2;
+            color: white;
+            font-size: 0.7rem;
+            padding: 3px 6px;
+            border-radius: 10px;
+        }
+
+        .bot-status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .bot-in-server {
+            background-color: #43b581;
+            color: white;
+        }
+
+        .bot-not-in-server {
+            background-color: #ff3860;
+            color: white;
+        }
+
+
+        .server-action {
+            margin-top: 10px;
+        }
+
+        .btn-server {
+            display: inline-block;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            cursor: pointer;
+            margin-right: 10px; /* Added margin for better spacing */
+        }
+
+        .btn-configure {
+            background-color: #5865F2;
+            color: white;
+        }
+
+        .btn-configure:hover {
+            background-color: #4752c4;
+        }
+
+        .btn-invite {
+            background-color: #43b581;
+            color: white;
+        }
+
+        .btn-invite:hover {
+            background-color: #3ca374;
+        }
+
+        .logout-btn {
+            background-color: #ff3860;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: #e6304e;
+        }
+
+        .config-panel {
+            display: none;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+
+        .config-panel.active {
+            display: block;
+        }
+
+        .config-option {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: 0.4s;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            -webkit-transition: 0.4s;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #5865F2;
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px #5865F2;
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(20px);
+            -ms-transform: translateX(20px);
+            transform: translateX(20px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2em;
+            color: #777;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 20px;
+            background-color: #ffdddd;
+            color: #d33;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/" class="navbar-brand"><i class="fas fa-map-marker-alt"></i> Location</a>
+            <div class="mobile-menu-icon" id="mobile-menu-btn">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+            <ul class="nav-links" id="mobile-nav">
+                <li><a href="/"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="/location-search"><i class="fas fa-search-location"></i> Location Search</a></li>
+                <li><a href="/status"><i class="fas fa-chart-line"></i> Status</a></li>
+                <li><a href="/info"><i class="fas fa-info-circle"></i> Info</a></li>
+                <li><a href="/profile" class="active"><i class="fas fa-user"></i> My Profile</a></li>
+                <div class="close-menu" id="close-menu-btn">×</div>
+            </ul>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <header>
+            <h1>Your Discord Profile</h1>
+            <p class="subtitle">Welcome to your profile page</p>
+        </header>
+
+        <div class="profile-section">
+            <div class="profile-header">
+                <img id="avatar" class="avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Profile picture">
+                <div class="profile-info">
+                    <h2 id="username">Loading...</h2>
+                    <p id="tag" class="tag">#0000</p>
+                </div>
+            </div>
+
+            <div class="profile-details">
+                <div class="detail-row">
+                    <div class="detail-label">Email:</div>
+                    <div id="email">Loading...</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">User ID:</div>
+                    <div id="user-id">Loading...</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Joined Discord:</div>
+                    <div id="joined-date">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Servers section removed -->
+
+        <div class="text-center">
+            <a href="/logout" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <script>
+        // Fetch user data from our API
+        async function fetchUserData() {
+            try {
+                const response = await fetch('/api/user');
+                const userData = await response.json();
+                displayUserData(userData);
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                // Only try to update the element if it exists
+                const serversContainer = document.getElementById('servers-container');
+                if (serversContainer) {
+                    serversContainer.innerHTML = '<p>Failed to load your Discord data. Please try again later.</p>';
+                }
+            }
+        }
+
+        // Display user data on the page
+        function displayUserData(user) {
+            // Update profile
+            document.getElementById('username').textContent = user.username;
+            document.getElementById('tag').textContent = `#${user.discriminator || '0000'}`;
+            document.getElementById('email').textContent = user.email || 'Not provided';
+            document.getElementById('user-id').textContent = user.id;
+
+            // Format and display the join date
+            const joinDate = user.createdAt ? new Date(user.createdAt) : new Date();
+            document.getElementById('joined-date').textContent = joinDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // Set user avatar
+            const avatar = user.avatar 
+                ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` 
+                : 'https://cdn.discordapp.com/embed/avatars/0.png';
+            document.getElementById('avatar').src = avatar;
+        }
+        
+        // Mobile menu toggle function
+        function toggleMobileMenu() {
+            const navLinks = document.getElementById('mobile-nav');
+            navLinks.classList.toggle('active');
+            
+            // Add overlay if menu is active
+            if (navLinks.classList.contains('active')) {
+                const overlay = document.createElement('div');
+                overlay.className = 'mobile-menu-overlay';
+                overlay.style.position = 'fixed';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.background = 'rgba(0,0,0,0.5)';
+                overlay.style.zIndex = '998';
+                
+                overlay.addEventListener('click', toggleMobileMenu);
+                document.body.appendChild(overlay);
+                
+                // Prevent scrolling when menu is open
+                document.body.style.overflow = 'hidden';
+            } else {
+                // Remove overlay and enable scrolling
+                const overlay = document.querySelector('.mobile-menu-overlay');
+                if (overlay) {
+                    overlay.remove();
+                }
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Load user data when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchUserData();
+            
+            // Set up mobile menu toggle
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+            }
+            
+            const closeMenuBtn = document.getElementById('close-menu-btn');
+            if (closeMenuBtn) {
+                closeMenuBtn.addEventListener('click', toggleMobileMenu);
+            }
+        });
+    </script>
+</body>
+</html>
